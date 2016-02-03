@@ -25,6 +25,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.oauth2.config.annotation.web.configurers.ResourceServerSecurityConfigurer;
 import org.springframework.security.oauth2.provider.client.ClientCredentialsTokenEndpointFilter;
 import org.springframework.security.oauth2.provider.error.DefaultWebResponseExceptionTranslator;
 import org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint;
@@ -52,6 +53,9 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
   @Autowired
   CorsFilter corsFilter;
+
+  @Autowired
+  DefaultOAuth2ProviderTokenService tokenService;
 
   @Bean
   public OAuth2AuthenticationEntryPoint oauthAuthenticationEntryPoint() {
@@ -127,6 +131,10 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
   @Override
   public void configure(final HttpSecurity http) throws Exception {
+
+    ResourceServerSecurityConfigurer resources = new ResourceServerSecurityConfigurer();
+    resources.tokenServices(tokenService);
+    http.apply(resources);
 
     http.antMatcher("/token").authorizeRequests()
       .antMatchers(HttpMethod.OPTIONS).permitAll().and().authorizeRequests()

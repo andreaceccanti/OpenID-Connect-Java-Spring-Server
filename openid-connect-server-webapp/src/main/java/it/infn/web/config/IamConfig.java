@@ -138,12 +138,7 @@ public class IamConfig {
     return new OAuth2AccessDeniedHandler();
   }
 
-  @Bean
-  public OAuth2RequestValidator oauthRequestValidator() {
-
-    return new StructuredScopeAwareOAuth2RequestValidator();
-  }
-
+  
   @Bean
   public MessageSource messageSource() {
 
