@@ -52,12 +52,6 @@
 
 	<mvc:default-servlet-handler />
 
-	<!-- Bean to hold configuration properties -->
-	<import resource="server-config.xml" />
-
-	<!-- Import the data context -->
-	<import resource="data-context.xml" />
-
 	<!-- SPEL processors -->
 	<security:global-method-security pre-post-annotations="enabled" proxy-target-class="true" authentication-manager-ref="authenticationManager">
 		<!--you could also wire in the expression handler up at the layer of the http filters. See https://jira.springsource.org/browse/SEC-1452 -->
@@ -208,18 +202,6 @@
 
 	<!-- End Spring Security configuration -->
 
-	<!-- JPA -->
-
-	<import resource="jpa-config.xml" />
-
-	<!-- End JPA -->
-
-	<!-- Crypto -->
-
-	<import resource="crypto-config.xml" />
-
-	<!-- End Crypto -->
-
 	<!-- View configuration -->
 
 	<!-- Handles HTTP GET requests for /resources/** by efficiently serving 
@@ -241,11 +223,5 @@
 	</bean>
 
 	<!-- End view configuration -->
-
-	<!--Import scheduled task configuration -->
-	<import resource="task-config.xml" />
-
-	<!-- import application-local configuration information (such as bean definitions) -->
-	<import resource="local-config.xml" />
 
 </beans>

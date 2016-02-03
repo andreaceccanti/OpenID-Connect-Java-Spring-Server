@@ -1,0 +1,14 @@
+spring:
+    application:
+        name: IAMServer
+        issuer: http://localhost:8080/openid-connect-server-webapp/
+        logoImageUrl: resources/images/openid_connect_small.png
+        topbarTitle: Indigo IAM server
+    datasource:
+        driverClassName: org.hsqldb.jdbcDriver
+        url: jdbc:hsqldb:mem:oic;sql.syntax_mys=true
+        username: oic
+        password: oic
+        databasePlatform: org.eclipse.persistence.platform.database.HSQLPlatform
+server:
+    port: 8080

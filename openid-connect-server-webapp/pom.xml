@@ -17,14 +17,32 @@
  -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
+	
+<!-- 	<parent> -->
+<!-- 		<groupId>org.mitre</groupId> -->
+<!-- 		<artifactId>openid-connect-parent</artifactId> -->
+<!-- 		<version>1.2.5-SNAPSHOT</version> -->
+<!-- 	</parent> -->
+
+	<properties>
+		<java-version>1.7</java-version>
+		<mitreid-connect-version>1.2.2</mitreid-connect-version>
+	</properties>
+
+
 	<parent>
-		<groupId>org.mitre</groupId>
-		<artifactId>openid-connect-parent</artifactId>
-		<version>1.2.5-SNAPSHOT</version>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>1.3.0.RELEASE</version>
+		<relativePath/>
 	</parent>
+	
 	<artifactId>openid-connect-server-webapp</artifactId>
+	
 	<packaging>war</packaging>
+	
 	<name>OpenID Connect Server Webapp</name>
+	
 	<build>
 		<plugins>
 			<plugin>
@@ -85,11 +103,25 @@
 			</plugin>
 		</plugins>
 	</build>
+	
 	<dependencies>
 		<dependency>
 			<groupId>org.mitre</groupId>
 			<artifactId>openid-connect-server</artifactId>
+			<version>${mitreid-connect-version}</version>
 		</dependency>
+		
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-starter-logging</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-orm</artifactId>
@@ -100,33 +132,59 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		
+		<dependency>
+		    <groupId>org.springframework.javaconfig</groupId>
+		    <artifactId>org.springframework.config.java</artifactId>
+		    <version>1.0.0.M4</version>
+		</dependency>
+		
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>jcl-over-slf4j</artifactId>
 		</dependency>
+		
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-log4j12</artifactId>
 		</dependency>
+		
 		<dependency>
 			<groupId>log4j</groupId>
 			<artifactId>log4j</artifactId>
 		</dependency>
+		
 		<dependency>
 			<groupId>org.hsqldb</groupId>
 			<artifactId>hsqldb</artifactId>
 		</dependency>
+		
 		<dependency>
 			<groupId>org.eclipse.persistence</groupId>
 			<artifactId>org.eclipse.persistence.jpa</artifactId>
+			<version>2.5.1</version>
 		</dependency>
+		
 		<dependency>
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-taglibs</artifactId>
 		</dependency>
+		
+		<dependency>
+		  <groupId>org.springframework.security</groupId>
+		  <artifactId>spring-security-config</artifactId>
+<!-- 		  <version>3.2.0.M2</version> -->
+		</dependency>
+		
 		<dependency>
 			<groupId>javax.servlet</groupId>
 			<artifactId>jstl</artifactId>
+		</dependency>
+		
+		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>servlet-api</artifactId>
+			<version>2.5</version>
 		</dependency>
 
 		<dependency>
@@ -134,4 +192,13 @@
 			<artifactId>HikariCP</artifactId>
 		</dependency>
 	</dependencies>
+	
+<!-- 	<repositories> -->
+<!-- 		<repository> -->
+<!-- 		  <id>repository.springsource.milestone</id> -->
+<!-- 		  <name>SpringSource Milestone Repository</name> -->
+<!-- 		  <url>http://repo.springsource.org/milestone</url> -->
+<!-- 		</repository> -->
+<!-- 	</repositories> -->
+	
 </project>
