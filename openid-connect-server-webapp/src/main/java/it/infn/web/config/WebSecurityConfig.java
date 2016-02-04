@@ -174,10 +174,9 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
       .httpBasic().authenticationEntryPoint(oauthAuthenticationEntryPoint())
       .and().sessionManagement()
       .sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
-      .addFilterBefore(resourceServerFilter(),
-        AbstractPreAuthenticatedProcessingFilter.class)
-      .and().addFilterAfter(corsFilter, SecurityContextPersistenceFilter.class)
-      .and().authorizeRequests().antMatchers("/resources/**").permitAll();
+      .addFilterAfter(corsFilter, SecurityContextPersistenceFilter.class)
+      .httpBasic().and().authorizeRequests().antMatchers("/resources/**")
+      .permitAll();
 
     http
       .antMatcher(
@@ -185,19 +184,16 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
       .httpBasic().authenticationEntryPoint(oauthAuthenticationEntryPoint())
       .and().sessionManagement()
       .sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
-      .addFilterBefore(resourceServerFilter(),
-        AbstractPreAuthenticatedProcessingFilter.class)
-      .and().addFilterAfter(corsFilter, SecurityContextPersistenceFilter.class)
-      .and().authorizeRequests().antMatchers("/resources/**").permitAll();
+      .addFilterAfter(corsFilter, SecurityContextPersistenceFilter.class)
+      .httpBasic().and().authorizeRequests().antMatchers("/resources/**")
+      .permitAll();
 
     http
       .antMatcher("/#{T(org.mitre.openid.connect.web.UserInfoEndpoint).URL}**")
       .httpBasic().authenticationEntryPoint(oauthAuthenticationEntryPoint())
       .and().sessionManagement()
       .sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
-      .addFilterBefore(resourceServerFilter(),
-        AbstractPreAuthenticatedProcessingFilter.class)
-      .and().addFilterAfter(corsFilter, SecurityContextPersistenceFilter.class);
+      .addFilterAfter(corsFilter, SecurityContextPersistenceFilter.class);
 
     http
       .antMatcher(
@@ -205,9 +201,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
       .httpBasic().authenticationEntryPoint(oauthAuthenticationEntryPoint())
       .and().sessionManagement()
       .sessionCreationPolicy(SessionCreationPolicy.NEVER).and()
-      .addFilterBefore(resourceServerFilter(),
-        AbstractPreAuthenticatedProcessingFilter.class)
-      .and().addFilterAfter(corsFilter, SecurityContextPersistenceFilter.class);
+      .addFilterAfter(corsFilter, SecurityContextPersistenceFilter.class);
 
     http.antMatcher("/#{T(org.mitre.oauth2.web.IntrospectionEndpoint).URL}**")
       .httpBasic().authenticationEntryPoint(oauthAuthenticationEntryPoint())

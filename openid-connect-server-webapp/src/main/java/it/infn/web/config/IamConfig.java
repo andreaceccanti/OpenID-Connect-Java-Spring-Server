@@ -12,9 +12,9 @@ import org.eclipse.persistence.jpa.PersistenceProvider;
 import org.mitre.jose.keystore.JWKSetKeyStore;
 import org.mitre.jwt.encryption.service.impl.DefaultJWTEncryptionAndDecryptionService;
 import org.mitre.jwt.signer.service.impl.DefaultJWTSigningAndValidationService;
+import org.mitre.oauth2.service.OAuth2TokenEntityService;
 import org.mitre.oauth2.service.impl.DefaultOAuth2AuthorizationCodeService;
 import org.mitre.oauth2.service.impl.DefaultOAuth2ProviderTokenService;
-import org.mitre.oauth2.token.StructuredScopeAwareOAuth2RequestValidator;
 import org.mitre.openid.connect.config.ConfigurationPropertiesBean;
 import org.mitre.openid.connect.config.JsonMessageSource;
 import org.mitre.openid.connect.service.impl.DefaultApprovedSiteService;
@@ -36,7 +36,6 @@ import org.springframework.orm.jpa.vendor.EclipseLinkJpaVendorAdapter;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.security.oauth2.provider.OAuth2RequestValidator;
 import org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler;
 import org.springframework.security.web.access.AccessDeniedHandler;
 
@@ -72,6 +71,21 @@ public class IamConfig {
 
   @Value("${spring.datasource.databasePlatform}")
   private String dbPlatform;
+
+  @Autowired
+  private DefaultOAuth2ProviderTokenService tokenService;
+
+  @Autowired
+  private DefaultApprovedSiteService siteService;
+
+  @Autowired
+  private DefaultOAuth2AuthorizationCodeService codeService;
+
+  @Bean
+  public OAuth2TokenEntityService defaultOAuth2ProviderTokenService() {
+
+    return new DefaultOAuth2ProviderTokenService();
+  }
 
   // server-config.xml
   @Bean
@@ -138,7 +152,6 @@ public class IamConfig {
     return new OAuth2AccessDeniedHandler();
   }
 
-  
   @Bean
   public MessageSource messageSource() {
 
@@ -220,14 +233,6 @@ public class IamConfig {
   }
 
   // task-config.xml
-  @Autowired
-  private DefaultOAuth2ProviderTokenService tokenService;
-
-  @Autowired
-  private DefaultApprovedSiteService siteService;
-
-  @Autowired
-  private DefaultOAuth2AuthorizationCodeService codeService;
 
   @Scheduled(fixedDelay = 300000, initialDelay = 600000)
   public void clearExpiredTokens() {

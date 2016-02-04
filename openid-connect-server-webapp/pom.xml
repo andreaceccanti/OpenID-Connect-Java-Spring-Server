@@ -18,28 +18,19 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	
-<!-- 	<parent> -->
-<!-- 		<groupId>org.mitre</groupId> -->
-<!-- 		<artifactId>openid-connect-parent</artifactId> -->
-<!-- 		<version>1.2.5-SNAPSHOT</version> -->
-<!-- 	</parent> -->
-
 	<properties>
 		<java-version>1.7</java-version>
 		<mitreid-connect-version>1.2.2</mitreid-connect-version>
 	</properties>
 
-
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>1.3.0.RELEASE</version>
+		<version>1.3.2.RELEASE</version>
 		<relativePath/>
 	</parent>
 	
 	<artifactId>openid-connect-server-webapp</artifactId>
-	
-	<packaging>war</packaging>
 	
 	<name>OpenID Connect Server Webapp</name>
 	
@@ -91,17 +82,22 @@
 					</execution>
 				</executions>
 			</plugin>
+<!-- 			<plugin> -->
+<!-- 				<groupId>org.eclipse.jetty</groupId> -->
+<!-- 				<artifactId>jetty-maven-plugin</artifactId> -->
+<!-- 				<configuration> -->
+<!-- 					<war>${project.build.directory}/openid-connect-server-webapp.war</war> -->
+<!-- 					<webAppConfig> -->
+<!-- 						<contextPath>/openid-connect-server-webapp</contextPath> -->
+<!-- 					</webAppConfig> -->
+<!-- 				</configuration> -->
+<!-- 			</plugin> -->
 			<plugin>
-				<groupId>org.eclipse.jetty</groupId>
-				<artifactId>jetty-maven-plugin</artifactId>
-				<configuration>
-					<war>${project.build.directory}/openid-connect-server-webapp.war</war>
-					<webAppConfig>
-						<contextPath>/openid-connect-server-webapp</contextPath>
-					</webAppConfig>
-				</configuration>
-			</plugin>
+	            <groupId>org.springframework.boot</groupId>
+	            <artifactId>spring-boot-maven-plugin</artifactId>
+	        </plugin>
 		</plugins>
+		
 	</build>
 	
 	<dependencies>
@@ -121,6 +117,11 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		
+		<dependency>
+	        <groupId>org.springframework.boot</groupId>
+	        <artifactId>spring-boot-starter-web</artifactId>
+	    </dependency>
 		
 		<dependency>
 			<groupId>org.springframework</groupId>
@@ -193,12 +194,5 @@
 		</dependency>
 	</dependencies>
 	
-<!-- 	<repositories> -->
-<!-- 		<repository> -->
-<!-- 		  <id>repository.springsource.milestone</id> -->
-<!-- 		  <name>SpringSource Milestone Repository</name> -->
-<!-- 		  <url>http://repo.springsource.org/milestone</url> -->
-<!-- 		</repository> -->
-<!-- 	</repositories> -->
 	
 </project>
