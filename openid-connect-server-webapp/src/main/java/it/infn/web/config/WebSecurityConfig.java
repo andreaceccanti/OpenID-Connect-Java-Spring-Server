@@ -1,10 +1,13 @@
 package it.infn.web.config;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.mitre.oauth2.service.OAuth2TokenEntityService;
+import org.mitre.oauth2.service.impl.DefaultClientUserDetailsService;
 import org.mitre.oauth2.service.impl.DefaultOAuth2ProviderTokenService;
 import org.mitre.oauth2.service.impl.UriEncodedClientUserDetailsService;
 import org.mitre.oauth2.web.CorsFilter;
@@ -18,6 +21,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -45,17 +50,23 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   @Autowired
   IamConfig iamConfig;
 
-  @Autowired
-  UserDetailsService clientUserDetailsManager;
+  @Bean
+  public UserDetailsService clientUserDetailsManager() {
 
-  @Autowired
-  UriEncodedClientUserDetailsService uriEncodedClientUserDetailsService;
+    return new DefaultClientUserDetailsService();
+  }
 
-  @Autowired
-  CorsFilter corsFilter;
+  @Bean
+  public UserDetailsService uriEncodedClientUserDetailsService() {
 
-  @Autowired
-  DefaultOAuth2ProviderTokenService tokenService;
+    return new UriEncodedClientUserDetailsService();
+  }
+
+  @Bean
+  public CorsFilter corsFilter() {
+
+    return new CorsFilter();
+  }
 
   @Bean
   public OAuth2AuthenticationEntryPoint oauthAuthenticationEntryPoint() {
@@ -85,19 +96,34 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     return new MultiUrlRequestMatcher(endpoints);
   }
 
-  public AuthenticationManager clientAuthenticationManager() {
+  public AuthenticationManager clientAuthenticationManager() throws Exception {
 
-    return null;
+    List<AuthenticationProvider> providers = new ArrayList<AuthenticationProvider>();
+    DaoAuthenticationProvider daoAP = new DaoAuthenticationProvider();
+
+    daoAP.setUserDetailsService(clientUserDetailsManager());
+    providers.add(daoAP);
+
+    daoAP = new DaoAuthenticationProvider();
+    daoAP.setUserDetailsService(uriEncodedClientUserDetailsService());
+    providers.add(daoAP);
+
+    return new ProviderManager(providers);
 
   }
 
   public AuthenticationManager clientAssertionAuthenticationManager() {
 
-    return null;
+    List<AuthenticationProvider> providers = new ArrayList<AuthenticationProvider>();
+    providers.add(clientAssertionAuthenticationProvider());
+
+    return new ProviderManager(providers);
+
   }
 
   @Bean
-  public ClientCredentialsTokenEndpointFilter clientCredentialsEndpointFilter() {
+  public ClientCredentialsTokenEndpointFilter clientCredentialsEndpointFilter()
+    throws Exception {
 
     ClientCredentialsTokenEndpointFilter tokenFilter = new ClientCredentialsTokenEndpointFilter();
     tokenFilter.setAuthenticationManager(clientAuthenticationManager());
@@ -130,10 +156,16 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   }
 
   @Override
+  public AuthenticationManager authenticationManagerBean() throws Exception {
+
+    return super.authenticationManagerBean();
+  }
+
+  @Override
   public void configure(final HttpSecurity http) throws Exception {
 
     ResourceServerSecurityConfigurer resources = new ResourceServerSecurityConfigurer();
-    resources.tokenServices(tokenService);
+    resources.tokenServices(iamConfig.tokenService());
     http.apply(resources);
 
     http.antMatcher("/token").authorizeRequests()
@@ -146,7 +178,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
       .addFilterAfter(clientCredentialsEndpointFilter(),
         BasicAuthenticationFilter.class)
       .httpBasic().and()
-      .addFilterAfter(corsFilter, SecurityContextPersistenceFilter.class);
+      .addFilterAfter(corsFilter(), SecurityContextPersistenceFilter.class);
 
     http.exceptionHandling()
       .accessDeniedHandler(iamConfig.oauthAccessDeniedHandler());
@@ -156,17 +188,17 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         "/#{T(org.mitre.openid.connect.web.JWKSetPublishingEndpoint).URL}**")
       .permitAll().and().sessionManagement()
       .sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
-      .addFilterAfter(corsFilter, SecurityContextPersistenceFilter.class);
+      .addFilterAfter(corsFilter(), SecurityContextPersistenceFilter.class);
 
     http.authorizeRequests()
       .antMatchers(
         "/#{T(org.mitre.discovery.web.DiscoveryEndpoint).WELL_KNOWN_URL}/**")
       .permitAll().and().sessionManagement()
       .sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
-      .addFilterAfter(corsFilter, SecurityContextPersistenceFilter.class);
+      .addFilterAfter(corsFilter(), SecurityContextPersistenceFilter.class);
 
     http.authorizeRequests().antMatchers("/resources/**").permitAll().and()
-      .addFilterAfter(corsFilter, SecurityContextPersistenceFilter.class);
+      .addFilterAfter(corsFilter(), SecurityContextPersistenceFilter.class);
 
     http
       .antMatcher(
@@ -174,7 +206,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
       .httpBasic().authenticationEntryPoint(oauthAuthenticationEntryPoint())
       .and().sessionManagement()
       .sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
-      .addFilterAfter(corsFilter, SecurityContextPersistenceFilter.class)
+      .addFilterAfter(corsFilter(), SecurityContextPersistenceFilter.class)
       .httpBasic().and().authorizeRequests().antMatchers("/resources/**")
       .permitAll();
 
@@ -184,7 +216,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
       .httpBasic().authenticationEntryPoint(oauthAuthenticationEntryPoint())
       .and().sessionManagement()
       .sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
-      .addFilterAfter(corsFilter, SecurityContextPersistenceFilter.class)
+      .addFilterAfter(corsFilter(), SecurityContextPersistenceFilter.class)
       .httpBasic().and().authorizeRequests().antMatchers("/resources/**")
       .permitAll();
 
@@ -193,7 +225,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
       .httpBasic().authenticationEntryPoint(oauthAuthenticationEntryPoint())
       .and().sessionManagement()
       .sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
-      .addFilterAfter(corsFilter, SecurityContextPersistenceFilter.class);
+      .addFilterAfter(corsFilter(), SecurityContextPersistenceFilter.class);
 
     http
       .antMatcher(
@@ -201,7 +233,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
       .httpBasic().authenticationEntryPoint(oauthAuthenticationEntryPoint())
       .and().sessionManagement()
       .sessionCreationPolicy(SessionCreationPolicy.NEVER).and()
-      .addFilterAfter(corsFilter, SecurityContextPersistenceFilter.class);
+      .addFilterAfter(corsFilter(), SecurityContextPersistenceFilter.class);
 
     http.antMatcher("/#{T(org.mitre.oauth2.web.IntrospectionEndpoint).URL}**")
       .httpBasic().authenticationEntryPoint(oauthAuthenticationEntryPoint())
@@ -210,7 +242,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
       .addFilterAfter(clientAssertionEndpointFilter(),
         AbstractPreAuthenticatedProcessingFilter.class)
       .httpBasic().and()
-      .addFilterAfter(corsFilter, SecurityContextPersistenceFilter.class)
+      .addFilterAfter(corsFilter(), SecurityContextPersistenceFilter.class)
       .httpBasic().and().addFilterAfter(clientCredentialsEndpointFilter(),
         BasicAuthenticationFilter.class);
 
@@ -221,7 +253,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
       .addFilterAfter(clientAssertionEndpointFilter(),
         AbstractPreAuthenticatedProcessingFilter.class)
       .httpBasic().and()
-      .addFilterAfter(corsFilter, SecurityContextPersistenceFilter.class)
+      .addFilterAfter(corsFilter(), SecurityContextPersistenceFilter.class)
       .httpBasic().and().addFilterAfter(clientCredentialsEndpointFilter(),
         BasicAuthenticationFilter.class);
 

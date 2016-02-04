@@ -19,7 +19,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	
 	<properties>
-		<java-version>1.7</java-version>
+		<java-version>1.8</java-version>
 		<mitreid-connect-version>1.2.2</mitreid-connect-version>
 	</properties>
 
@@ -69,6 +69,7 @@
 					</webResources>
 				</configuration>
 			</plugin>
+			
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-dependency-plugin</artifactId>
@@ -82,22 +83,12 @@
 					</execution>
 				</executions>
 			</plugin>
-<!-- 			<plugin> -->
-<!-- 				<groupId>org.eclipse.jetty</groupId> -->
-<!-- 				<artifactId>jetty-maven-plugin</artifactId> -->
-<!-- 				<configuration> -->
-<!-- 					<war>${project.build.directory}/openid-connect-server-webapp.war</war> -->
-<!-- 					<webAppConfig> -->
-<!-- 						<contextPath>/openid-connect-server-webapp</contextPath> -->
-<!-- 					</webAppConfig> -->
-<!-- 				</configuration> -->
-<!-- 			</plugin> -->
+			
 			<plugin>
 	            <groupId>org.springframework.boot</groupId>
 	            <artifactId>spring-boot-maven-plugin</artifactId>
 	        </plugin>
 		</plugins>
-		
 	</build>
 	
 	<dependencies>
@@ -134,11 +125,11 @@
 			</exclusions>
 		</dependency>
 		
-		<dependency>
-		    <groupId>org.springframework.javaconfig</groupId>
-		    <artifactId>org.springframework.config.java</artifactId>
-		    <version>1.0.0.M4</version>
-		</dependency>
+<!-- 		<dependency> -->
+<!-- 		    <groupId>org.springframework.javaconfig</groupId> -->
+<!-- 		    <artifactId>org.springframework.config.java</artifactId> -->
+<!-- 		    <version>1.0.0.M4</version> -->
+<!-- 		</dependency> -->
 		
 		<dependency>
 			<groupId>org.slf4j</groupId>

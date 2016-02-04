@@ -19,6 +19,6 @@ public class IamResourceServer extends ResourceServerConfigurerAdapter {
   public void configure(final ResourceServerSecurityConfigurer resources)
     throws Exception {
 
-    resources.tokenServices(iamConfig.defaultOAuth2ProviderTokenService());
+    resources.tokenServices(iamConfig.tokenService());
   }
 }

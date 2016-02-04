@@ -17,8 +17,8 @@ import org.mitre.oauth2.service.impl.DefaultOAuth2AuthorizationCodeService;
 import org.mitre.oauth2.service.impl.DefaultOAuth2ProviderTokenService;
 import org.mitre.openid.connect.config.ConfigurationPropertiesBean;
 import org.mitre.openid.connect.config.JsonMessageSource;
+import org.mitre.openid.connect.service.ApprovedSiteService;
 import org.mitre.openid.connect.service.impl.DefaultApprovedSiteService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
@@ -72,19 +72,22 @@ public class IamConfig {
   @Value("${spring.datasource.databasePlatform}")
   private String dbPlatform;
 
-  @Autowired
-  private DefaultOAuth2ProviderTokenService tokenService;
-
-  @Autowired
-  private DefaultApprovedSiteService siteService;
-
-  @Autowired
-  private DefaultOAuth2AuthorizationCodeService codeService;
-
   @Bean
-  public OAuth2TokenEntityService defaultOAuth2ProviderTokenService() {
+  public OAuth2TokenEntityService tokenService() {
 
     return new DefaultOAuth2ProviderTokenService();
+  }
+
+  @Bean
+  public ApprovedSiteService siteService() {
+
+    return new DefaultApprovedSiteService();
+  }
+
+  @Bean
+  public DefaultOAuth2AuthorizationCodeService codeService() {
+
+    return new DefaultOAuth2AuthorizationCodeService();
   }
 
   // server-config.xml
@@ -237,19 +240,19 @@ public class IamConfig {
   @Scheduled(fixedDelay = 300000, initialDelay = 600000)
   public void clearExpiredTokens() {
 
-    tokenService.clearExpiredTokens();
+    tokenService().clearExpiredTokens();
   }
 
   @Scheduled(fixedDelay = 300000, initialDelay = 600000)
   public void clearExpiredSites() {
 
-    siteService.clearExpiredSites();
+    siteService().clearExpiredSites();
   }
 
   @Scheduled(fixedDelay = 300000, initialDelay = 600000)
   public void clearExpiredAuthzCodes() {
 
-    codeService.clearExpiredAuthorizationCodes();
+    codeService().clearExpiredAuthorizationCodes();
   }
 
   // local-config.xml

@@ -2,19 +2,17 @@ package it.infn.web.config;
 
 import org.mitre.oauth2.service.impl.DefaultOAuth2AuthorizationCodeService;
 import org.mitre.oauth2.service.impl.DefaultOAuth2ClientDetailsEntityService;
-import org.mitre.oauth2.service.impl.DefaultOAuth2ProviderTokenService;
 import org.mitre.oauth2.token.ChainedTokenGranter;
 import org.mitre.oauth2.token.JWTAssertionTokenGranter;
 import org.mitre.oauth2.token.StructuredScopeAwareOAuth2RequestValidator;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.config.java.annotation.Bean;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.oauth2.config.annotation.configurers.ClientDetailsServiceConfigurer;
 import org.springframework.security.oauth2.config.annotation.web.configuration.AuthorizationServerConfigurerAdapter;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableAuthorizationServer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerEndpointsConfigurer;
-import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerSecurityConfigurer;
 import org.springframework.security.oauth2.provider.OAuth2RequestValidator;
 import org.springframework.security.oauth2.provider.approval.UserApprovalHandler;
 
@@ -26,9 +24,6 @@ public class IamAuthorizationServer
 
   @Autowired
   IamConfig iamConfig;
-
-  @Autowired
-  private DefaultOAuth2ProviderTokenService tokenService;
 
   @Autowired
   private DefaultOAuth2AuthorizationCodeService authCodeService;
@@ -60,12 +55,6 @@ public class IamAuthorizationServer
   }
 
   @Override
-  public void configure(final AuthorizationServerSecurityConfigurer security)
-    throws Exception {
-
-  }
-
-  @Override
   public void configure(final AuthorizationServerEndpointsConfigurer endpoints)
     throws Exception {
 
@@ -74,7 +63,7 @@ public class IamAuthorizationServer
       .pathMapping("/oauth/error", "/error");
 
     endpoints.setClientDetailsService(clientDetailsEntityService);
-    endpoints.tokenServices(tokenService)
+    endpoints.tokenServices(iamConfig.tokenService())
       .userApprovalHandler(tofuUserAppovalHandler)
       .requestValidator(oauthRequestValidator());
 
