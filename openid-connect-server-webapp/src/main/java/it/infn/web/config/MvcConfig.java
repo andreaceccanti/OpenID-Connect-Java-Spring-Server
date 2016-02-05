@@ -17,7 +17,7 @@ import org.springframework.web.servlet.view.BeanNameViewResolver;
 import org.springframework.web.servlet.view.InternalResourceViewResolver;
 
 @Configuration
-@ComponentScan({ "it.infn.web" })
+@ComponentScan({ "it.infn.web", "org.mitre" })
 public class MvcConfig extends WebMvcConfigurerAdapter {
 
   @Override

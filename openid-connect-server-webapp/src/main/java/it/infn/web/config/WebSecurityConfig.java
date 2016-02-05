@@ -50,13 +50,11 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   @Autowired
   IamConfig iamConfig;
 
-  @Bean
   public UserDetailsService clientUserDetailsManager() {
 
     return new DefaultClientUserDetailsService();
   }
 
-  @Bean
   public UserDetailsService uriEncodedClientUserDetailsService() {
 
     return new UriEncodedClientUserDetailsService();
@@ -96,6 +94,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     return new MultiUrlRequestMatcher(endpoints);
   }
 
+  @Bean
   public AuthenticationManager clientAuthenticationManager() throws Exception {
 
     List<AuthenticationProvider> providers = new ArrayList<AuthenticationProvider>();
@@ -112,6 +111,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
   }
 
+  @Bean
   public AuthenticationManager clientAssertionAuthenticationManager() {
 
     List<AuthenticationProvider> providers = new ArrayList<AuthenticationProvider>();

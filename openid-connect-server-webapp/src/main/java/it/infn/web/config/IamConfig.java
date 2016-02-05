@@ -19,6 +19,7 @@ import org.mitre.openid.connect.config.ConfigurationPropertiesBean;
 import org.mitre.openid.connect.config.JsonMessageSource;
 import org.mitre.openid.connect.service.ApprovedSiteService;
 import org.mitre.openid.connect.service.impl.DefaultApprovedSiteService;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
@@ -38,6 +39,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import com.nimbusds.jose.JWEAlgorithm;
 import com.zaxxer.hikari.HikariConfig;
@@ -46,6 +48,7 @@ import com.zaxxer.hikari.HikariDataSource;
 @Configuration
 @EnableAsync
 @EnableScheduling
+@EnableTransactionManagement
 public class IamConfig {
 
   @Value("${spring.application.issuer}")
@@ -127,13 +130,15 @@ public class IamConfig {
 
     ResourceDatabasePopulator databasePopulator = new ResourceDatabasePopulator();
     databasePopulator.setContinueOnError(false);
-    databasePopulator.addScript(new ClassPathResource("database_tables.sql"));
-    databasePopulator.addScript(new ClassPathResource("security-schema.sql"));
     databasePopulator
-      .addScript(new ClassPathResource("loading_temp_tables.sql"));
-    databasePopulator.addScript(new ClassPathResource("users.sql"));
-    databasePopulator.addScript(new ClassPathResource("clients.sql"));
-    databasePopulator.addScript(new ClassPathResource("scopes.sql"));
+      .addScript(new ClassPathResource("db/tables/hsql_database_tables.sql"));
+    databasePopulator
+      .addScript(new ClassPathResource("db/tables/security-schema.sql"));
+    databasePopulator
+      .addScript(new ClassPathResource("db/tables/loading_temp_tables.sql"));
+    databasePopulator.addScript(new ClassPathResource("db/users.sql"));
+    databasePopulator.addScript(new ClassPathResource("db/clients.sql"));
+    databasePopulator.addScript(new ClassPathResource("db/scopes.sql"));
     return databasePopulator;
   }
 
@@ -168,6 +173,7 @@ public class IamConfig {
 
   // jpa-config.xml
   @Bean
+  @Qualifier("defaultTransactionManager")
   public JpaTransactionManager transactionManager() {
 
     JpaTransactionManager transactionManager = new JpaTransactionManager();
@@ -193,7 +199,7 @@ public class IamConfig {
     entity.setJpaPropertyMap(jpaProperties);
     entity.setPersistenceUnitName("defaultPersistenceUnit");
 
-    return (EntityManagerFactory) entity;
+    return entity.getNativeEntityManagerFactory();
   }
 
   // crypto-config.xml
