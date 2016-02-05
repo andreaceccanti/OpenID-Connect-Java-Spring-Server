@@ -1,8 +1,6 @@
 package it.infn.web.config;
 
-import java.util.LinkedHashMap;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Properties;
 
 import javax.persistence.EntityManagerFactory;
@@ -39,7 +37,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler;
 import org.springframework.security.web.access.AccessDeniedHandler;
-import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import com.nimbusds.jose.JWEAlgorithm;
 import com.zaxxer.hikari.HikariConfig;
@@ -48,7 +45,6 @@ import com.zaxxer.hikari.HikariDataSource;
 @Configuration
 @EnableAsync
 @EnableScheduling
-@EnableTransactionManagement
 public class IamConfig {
 
   @Value("${spring.application.issuer}")
@@ -165,7 +161,7 @@ public class IamConfig {
 
     JsonMessageSource messageSource = new JsonMessageSource();
     messageSource
-      .setBaseDirectory(new FileSystemResource("/resource/js/locale"));
+      .setBaseDirectory(new FileSystemResource("resource/js/locale"));
     messageSource.setUseCodeAsDefaultMessage(true);
 
     return messageSource;
@@ -185,18 +181,18 @@ public class IamConfig {
   @Bean
   public EntityManagerFactory entityManagerFactory() {
 
-    Map<String, Object> jpaProperties = new LinkedHashMap<String, Object>();
+    Properties jpaProperties = new Properties();
     jpaProperties.put("eclipselink.weaving", false);
     jpaProperties.put("eclipselink.logging.level", "INFO");
     jpaProperties.put("eclipselink.logging.level.sql", "INFO");
     jpaProperties.put("eclipselink.cache.shared.default", false);
 
     LocalContainerEntityManagerFactoryBean entity = new LocalContainerEntityManagerFactoryBean();
-    entity.setPackagesToScan("org.mitre");
+    entity.setPackagesToScan("org.mitre", "it.infn.web");
     entity.setPersistenceProviderClass(PersistenceProvider.class);
     entity.setDataSource(iamDataSource());
     entity.setJpaVendorAdapter(jpaAdapter());
-    entity.setJpaPropertyMap(jpaProperties);
+    entity.setJpaProperties(jpaProperties);
     entity.setPersistenceUnitName("defaultPersistenceUnit");
 
     return entity.getNativeEntityManagerFactory();

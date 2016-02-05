@@ -1,6 +1,5 @@
 package it.infn.web.config;
 
-import org.mitre.oauth2.service.ClientDetailsEntityService;
 import org.mitre.oauth2.service.impl.DefaultOAuth2AuthorizationCodeService;
 import org.mitre.oauth2.service.impl.DefaultOAuth2ClientDetailsEntityService;
 import org.mitre.oauth2.token.ChainedTokenGranter;
@@ -28,7 +27,7 @@ public class IamAuthorizationServer
   extends AuthorizationServerConfigurerAdapter {
 
   @Autowired
-  IamConfig iamConfig;
+  private IamConfig iamConfig;
 
   @Bean
   public AuthorizationCodeServices authCodeService() {
@@ -36,29 +35,26 @@ public class IamAuthorizationServer
     return new DefaultOAuth2AuthorizationCodeService();
   }
 
-  @Bean
-  public ClientDetailsEntityService clientDetailsEntityService() {
-
-    return new DefaultOAuth2ClientDetailsEntityService();
-  }
+  @Autowired
+  private DefaultOAuth2ClientDetailsEntityService clientDetailsEntityService;
 
   private OAuth2RequestFactory requestFactory() {
 
-    return new DefaultOAuth2RequestFactory(clientDetailsEntityService());
+    return new DefaultOAuth2RequestFactory(clientDetailsEntityService);
   }
 
   @Bean
   public ChainedTokenGranter chainedTokenGranter() {
 
     return new ChainedTokenGranter(iamConfig.tokenService(),
-      clientDetailsEntityService(), requestFactory());
+      clientDetailsEntityService, requestFactory());
   }
 
   @Bean
   public JWTAssertionTokenGranter jwtAssertionTokenGranter() {
 
     return new JWTAssertionTokenGranter(iamConfig.tokenService(),
-      clientDetailsEntityService(), requestFactory());
+      clientDetailsEntityService, requestFactory());
   }
 
   @Bean
@@ -89,7 +85,7 @@ public class IamAuthorizationServer
       .pathMapping("/oauth/token", "/token")
       .pathMapping("/oauth/error", "/error");
 
-    endpoints.setClientDetailsService(clientDetailsEntityService());
+    endpoints.setClientDetailsService(clientDetailsEntityService);
     endpoints.tokenServices(iamConfig.tokenService())
       .userApprovalHandler(tofuUserAppovalHandler())
       .requestValidator(oauthRequestValidator());
