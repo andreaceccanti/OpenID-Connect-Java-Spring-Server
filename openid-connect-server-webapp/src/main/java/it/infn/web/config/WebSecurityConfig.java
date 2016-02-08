@@ -6,9 +6,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.mitre.oauth2.service.OAuth2TokenEntityService;
 import org.mitre.oauth2.service.impl.DefaultClientUserDetailsService;
-import org.mitre.oauth2.service.impl.DefaultOAuth2ProviderTokenService;
 import org.mitre.oauth2.service.impl.UriEncodedClientUserDetailsService;
 import org.mitre.oauth2.web.CorsFilter;
 import org.mitre.openid.connect.assertion.JWTBearerAuthenticationProvider;
@@ -149,12 +147,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     return new JWTBearerAuthenticationProvider();
   }
 
-  @Bean
-  public OAuth2TokenEntityService resourceServerFilter() {
-
-    return new DefaultOAuth2ProviderTokenService();
-  }
-
   @Override
   public AuthenticationManager authenticationManagerBean() throws Exception {
 
@@ -165,7 +157,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   public void configure(final HttpSecurity http) throws Exception {
 
     ResourceServerSecurityConfigurer resources = new ResourceServerSecurityConfigurer();
-    resources.tokenServices(iamConfig.tokenService());
+    resources.tokenServices(iamConfig.tokenService);
     http.apply(resources);
 
     http.antMatcher("/token").authorizeRequests()

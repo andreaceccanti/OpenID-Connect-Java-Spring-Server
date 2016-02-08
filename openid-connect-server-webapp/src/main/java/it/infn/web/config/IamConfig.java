@@ -3,21 +3,17 @@ package it.infn.web.config;
 import java.util.Locale;
 import java.util.Properties;
 
-import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 
-import org.eclipse.persistence.jpa.PersistenceProvider;
 import org.mitre.jose.keystore.JWKSetKeyStore;
 import org.mitre.jwt.encryption.service.impl.DefaultJWTEncryptionAndDecryptionService;
 import org.mitre.jwt.signer.service.impl.DefaultJWTSigningAndValidationService;
-import org.mitre.oauth2.service.OAuth2TokenEntityService;
 import org.mitre.oauth2.service.impl.DefaultOAuth2AuthorizationCodeService;
 import org.mitre.oauth2.service.impl.DefaultOAuth2ProviderTokenService;
 import org.mitre.openid.connect.config.ConfigurationPropertiesBean;
 import org.mitre.openid.connect.config.JsonMessageSource;
-import org.mitre.openid.connect.service.ApprovedSiteService;
 import org.mitre.openid.connect.service.impl.DefaultApprovedSiteService;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
@@ -28,9 +24,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.jdbc.datasource.init.DatabasePopulator;
 import org.springframework.jdbc.datasource.init.DatabasePopulatorUtils;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
-import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.JpaVendorAdapter;
-import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.EclipseLinkJpaVendorAdapter;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -71,17 +65,11 @@ public class IamConfig {
   @Value("${spring.datasource.databasePlatform}")
   private String dbPlatform;
 
-  @Bean
-  public OAuth2TokenEntityService tokenService() {
+  @Autowired
+  DefaultOAuth2ProviderTokenService tokenService;
 
-    return new DefaultOAuth2ProviderTokenService();
-  }
-
-  @Bean
-  public ApprovedSiteService siteService() {
-
-    return new DefaultApprovedSiteService();
-  }
+  @Autowired
+  DefaultApprovedSiteService defaultApprovedSiteService;
 
   @Bean
   public DefaultOAuth2AuthorizationCodeService codeService() {
@@ -161,48 +149,18 @@ public class IamConfig {
 
     JsonMessageSource messageSource = new JsonMessageSource();
     messageSource
-      .setBaseDirectory(new FileSystemResource("resource/js/locale"));
+      .setBaseDirectory(new ClassPathResource("resources/js/locale"));
     messageSource.setUseCodeAsDefaultMessage(true);
 
     return messageSource;
-  }
-
-  // jpa-config.xml
-  @Bean
-  @Qualifier("defaultTransactionManager")
-  public JpaTransactionManager transactionManager() {
-
-    JpaTransactionManager transactionManager = new JpaTransactionManager();
-    transactionManager.setEntityManagerFactory(entityManagerFactory());
-
-    return transactionManager;
-  }
-
-  @Bean
-  public EntityManagerFactory entityManagerFactory() {
-
-    Properties jpaProperties = new Properties();
-    jpaProperties.put("eclipselink.weaving", false);
-    jpaProperties.put("eclipselink.logging.level", "INFO");
-    jpaProperties.put("eclipselink.logging.level.sql", "INFO");
-    jpaProperties.put("eclipselink.cache.shared.default", false);
-
-    LocalContainerEntityManagerFactoryBean entity = new LocalContainerEntityManagerFactoryBean();
-    entity.setPackagesToScan("org.mitre", "it.infn.web");
-    entity.setPersistenceProviderClass(PersistenceProvider.class);
-    entity.setDataSource(iamDataSource());
-    entity.setJpaVendorAdapter(jpaAdapter());
-    entity.setJpaProperties(jpaProperties);
-    entity.setPersistenceUnitName("defaultPersistenceUnit");
-
-    return entity.getNativeEntityManagerFactory();
   }
 
   // crypto-config.xml
   @Bean
   public JWKSetKeyStore defaultKeyStore() {
 
-    Resource location = new FileSystemResource("keystore.jwks");
+    Resource location = new FileSystemResource(
+      "src/main/resources/keystore.jwks");
     JWKSetKeyStore keyStore = new JWKSetKeyStore();
     keyStore.setLocation(location);
 
@@ -242,13 +200,13 @@ public class IamConfig {
   @Scheduled(fixedDelay = 300000, initialDelay = 600000)
   public void clearExpiredTokens() {
 
-    tokenService().clearExpiredTokens();
+    tokenService.clearExpiredTokens();
   }
 
   @Scheduled(fixedDelay = 300000, initialDelay = 600000)
   public void clearExpiredSites() {
 
-    siteService().clearExpiredSites();
+    defaultApprovedSiteService.clearExpiredSites();
   }
 
   @Scheduled(fixedDelay = 300000, initialDelay = 600000)

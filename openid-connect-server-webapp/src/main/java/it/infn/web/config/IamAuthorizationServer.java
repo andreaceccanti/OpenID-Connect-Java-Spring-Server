@@ -29,14 +29,14 @@ public class IamAuthorizationServer
   @Autowired
   private IamConfig iamConfig;
 
+  @Autowired
+  private DefaultOAuth2ClientDetailsEntityService clientDetailsEntityService;
+
   @Bean
   public AuthorizationCodeServices authCodeService() {
 
     return new DefaultOAuth2AuthorizationCodeService();
   }
-
-  @Autowired
-  private DefaultOAuth2ClientDetailsEntityService clientDetailsEntityService;
 
   private OAuth2RequestFactory requestFactory() {
 
@@ -46,14 +46,14 @@ public class IamAuthorizationServer
   @Bean
   public ChainedTokenGranter chainedTokenGranter() {
 
-    return new ChainedTokenGranter(iamConfig.tokenService(),
+    return new ChainedTokenGranter(iamConfig.tokenService,
       clientDetailsEntityService, requestFactory());
   }
 
   @Bean
   public JWTAssertionTokenGranter jwtAssertionTokenGranter() {
 
-    return new JWTAssertionTokenGranter(iamConfig.tokenService(),
+    return new JWTAssertionTokenGranter(iamConfig.tokenService,
       clientDetailsEntityService, requestFactory());
   }
 
@@ -86,7 +86,7 @@ public class IamAuthorizationServer
       .pathMapping("/oauth/error", "/error");
 
     endpoints.setClientDetailsService(clientDetailsEntityService);
-    endpoints.tokenServices(iamConfig.tokenService())
+    endpoints.tokenServices(iamConfig.tokenService)
       .userApprovalHandler(tofuUserAppovalHandler())
       .requestValidator(oauthRequestValidator());
 
