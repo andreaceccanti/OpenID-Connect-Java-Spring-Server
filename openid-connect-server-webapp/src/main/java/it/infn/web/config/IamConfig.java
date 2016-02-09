@@ -10,6 +10,7 @@ import org.mitre.jwt.encryption.service.impl.DefaultJWTEncryptionAndDecryptionSe
 import org.mitre.jwt.signer.service.impl.DefaultJWTSigningAndValidationService;
 import org.mitre.oauth2.service.impl.DefaultOAuth2AuthorizationCodeService;
 import org.mitre.oauth2.service.impl.DefaultOAuth2ProviderTokenService;
+import org.mitre.oauth2.web.CorsFilter;
 import org.mitre.openid.connect.config.ConfigurationPropertiesBean;
 import org.mitre.openid.connect.config.JsonMessageSource;
 import org.mitre.openid.connect.service.impl.DefaultApprovedSiteService;
@@ -19,6 +20,7 @@ import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.jdbc.datasource.init.DatabasePopulator;
@@ -27,10 +29,10 @@ import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.orm.jpa.JpaVendorAdapter;
 import org.springframework.orm.jpa.vendor.EclipseLinkJpaVendorAdapter;
 import org.springframework.scheduling.annotation.EnableAsync;
-import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler;
+import org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import com.nimbusds.jose.JWEAlgorithm;
 import com.zaxxer.hikari.HikariConfig;
@@ -38,7 +40,6 @@ import com.zaxxer.hikari.HikariDataSource;
 
 @Configuration
 @EnableAsync
-@EnableScheduling
 public class IamConfig {
 
   @Value("${spring.application.issuer}")
@@ -71,10 +72,27 @@ public class IamConfig {
   @Autowired
   DefaultApprovedSiteService defaultApprovedSiteService;
 
+  @Autowired
+  PlatformTransactionManager defaultTransactionManager;
+
   @Bean
   public DefaultOAuth2AuthorizationCodeService codeService() {
 
     return new DefaultOAuth2AuthorizationCodeService();
+  }
+
+  @Bean
+  public CorsFilter corsFilter() {
+
+    return new CorsFilter();
+  }
+
+  @Bean
+  public OAuth2AuthenticationEntryPoint oauthAuthenticationEntryPoint() {
+
+    OAuth2AuthenticationEntryPoint entryPoint = new OAuth2AuthenticationEntryPoint();
+    entryPoint.setRealmName("openidconnect");
+    return entryPoint;
   }
 
   // server-config.xml
@@ -147,9 +165,10 @@ public class IamConfig {
   @Bean
   public MessageSource messageSource() {
 
+    DefaultResourceLoader loader = new DefaultResourceLoader();
     JsonMessageSource messageSource = new JsonMessageSource();
     messageSource
-      .setBaseDirectory(new ClassPathResource("resources/js/locale"));
+      .setBaseDirectory(loader.getResource("classpath:resources/js/locale/"));
     messageSource.setUseCodeAsDefaultMessage(true);
 
     return messageSource;
@@ -193,26 +212,6 @@ public class IamConfig {
     encryptionService.setDefaultEncryptionKeyId("rsa1");
 
     return encryptionService;
-  }
-
-  // task-config.xml
-
-  @Scheduled(fixedDelay = 300000, initialDelay = 600000)
-  public void clearExpiredTokens() {
-
-    tokenService.clearExpiredTokens();
-  }
-
-  @Scheduled(fixedDelay = 300000, initialDelay = 600000)
-  public void clearExpiredSites() {
-
-    defaultApprovedSiteService.clearExpiredSites();
-  }
-
-  @Scheduled(fixedDelay = 300000, initialDelay = 600000)
-  public void clearExpiredAuthzCodes() {
-
-    codeService().clearExpiredAuthorizationCodes();
   }
 
   // local-config.xml

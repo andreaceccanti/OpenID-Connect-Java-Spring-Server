@@ -44,31 +44,6 @@
 					<target>${java-version}</target>
 				</configuration>
 			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-war-plugin</artifactId>
-				<configuration>
-					<warName>openid-connect-server-webapp</warName>
-					<webResources>
-						<resource>
-							<directory>src/main/webapp</directory>
-							<filtering>true</filtering>
-							<includes>
-								<include>**/*.tag</include>
-								<include>**/*.jsp</include>
-							</includes>
-						</resource>
-						<resource>
-							<directory>src/main/webapp</directory>
-							<filtering>false</filtering>
-							<excludes>
-								<exclude>**/*.tag</exclude>
-								<exclude>**/*.jsp</exclude>
-							</excludes>
-						</resource>
-					</webResources>
-				</configuration>
-			</plugin>
 			
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -89,6 +64,15 @@
 	            <artifactId>spring-boot-maven-plugin</artifactId>
 	        </plugin>
 		</plugins>
+		
+		<resources>
+		    <resource>
+				<directory>src/main/resources</directory>
+		    </resource>
+	    	<resource>
+				<directory>src/main/webapp</directory>
+	    	</resource>
+		</resources>
 	</build>
 	
 	<dependencies>
@@ -125,11 +109,17 @@
 			</exclusions>
 		</dependency>
 		
-<!-- 		<dependency> -->
-<!-- 		    <groupId>org.springframework.javaconfig</groupId> -->
-<!-- 		    <artifactId>org.springframework.config.java</artifactId> -->
-<!-- 		    <version>1.0.0.M4</version> -->
-<!-- 		</dependency> -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-tomcat</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.apache.tomcat.embed</groupId>
+			<artifactId>tomcat-embed-jasper</artifactId>
+			<scope>provided</scope>
+		</dependency>
 		
 		<dependency>
 			<groupId>org.slf4j</groupId>
@@ -183,7 +173,7 @@
 			<groupId>com.zaxxer</groupId>
 			<artifactId>HikariCP</artifactId>
 		</dependency>
+		
 	</dependencies>
-	
 	
 </project>
