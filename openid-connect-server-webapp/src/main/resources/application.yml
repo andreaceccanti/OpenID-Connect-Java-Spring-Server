@@ -1,7 +1,7 @@
 spring:
     application:
         name: IAMServer
-        issuer: http://localhost:8080/openid-connect-server-webapp/
+        issuer: http://localhost:8080/
         logoImageUrl: resources/images/openid_connect_small.png
         topbarTitle: Indigo IAM server
     datasource:
@@ -12,3 +12,4 @@ spring:
         databasePlatform: org.eclipse.persistence.platform.database.HSQLPlatform
 server:
     port: 8080
+    scheduler-poll-size: 10
