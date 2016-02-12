@@ -18,7 +18,6 @@ import org.mitre.openid.connect.web.AuthenticationTimeStamper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.ProviderManager;
@@ -28,7 +27,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.oauth2.provider.client.ClientCredentialsTokenEndpointFilter;
 import org.springframework.security.oauth2.provider.error.DefaultWebResponseExceptionTranslator;
@@ -36,9 +34,6 @@ import org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHand
 import org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint;
 import org.springframework.security.oauth2.provider.error.WebResponseExceptionTranslator;
 import org.springframework.security.web.authentication.Http403ForbiddenEntryPoint;
-import org.springframework.security.web.authentication.preauth.AbstractPreAuthenticatedProcessingFilter;
-import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
-import org.springframework.security.web.context.SecurityContextPersistenceFilter;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 
 @Configuration
@@ -131,6 +126,9 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         .and()
       .authorizeRequests()
         .antMatchers("/authorize").hasRole("USER")
+        .antMatchers("/token").authenticated()
+        .antMatchers("/#{T(org.mitre.openid.connect.web.JWKSetPublishingEndpoint).URL}**").permitAll()
+        .antMatchers("/#{T(org.mitre.discovery.web.DiscoveryEndpoint).WELL_KNOWN_URL}/**").permitAll()
         .antMatchers("/**").permitAll()
         .anyRequest().authenticated()
         .and()
@@ -145,18 +143,18 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         .and()
       .csrf();
     
-    http.antMatcher("/token").authorizeRequests()
-      .antMatchers(HttpMethod.OPTIONS).permitAll()
-      .and().authorizeRequests()
-      .antMatchers("/token").authenticated()
-      .and().httpBasic()
-      .authenticationEntryPoint(oauthAuthenticationEntryPoint)
-      .and()
-      .addFilterAfter(clientAssertionEndpointFilter(), AbstractPreAuthenticatedProcessingFilter.class).httpBasic()
-      .and()
-      .addFilterAfter(clientCredentialsEndpointFilter(), BasicAuthenticationFilter.class).httpBasic()
-      .and().addFilterAfter(corsFilter, SecurityContextPersistenceFilter.class);
-
+//    http.antMatcher("/token").authorizeRequests()
+//      .antMatchers(HttpMethod.OPTIONS).permitAll()
+//      .and().authorizeRequests()
+//      .antMatchers("/token").authenticated()
+//      .and().httpBasic()
+//      .authenticationEntryPoint(oauthAuthenticationEntryPoint)
+//      .and()
+//      .addFilterAfter(clientAssertionEndpointFilter(), AbstractPreAuthenticatedProcessingFilter.class).httpBasic()
+//      .and()
+//      .addFilterAfter(clientCredentialsEndpointFilter(), BasicAuthenticationFilter.class).httpBasic()
+//      .and().addFilterAfter(corsFilter, SecurityContextPersistenceFilter.class);
+/*
     http.exceptionHandling()
       .accessDeniedHandler(oauthAccessDeniedHandler);
 
@@ -198,6 +196,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
       .addFilterAfter(corsFilter, SecurityContextPersistenceFilter.class).httpBasic()
       .and()
       .addFilterAfter(clientCredentialsEndpointFilter(), BasicAuthenticationFilter.class);
+      */
     // @formatter:on
   }
 
