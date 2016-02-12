@@ -2,10 +2,13 @@ package org.mitre.web.config;
 
 import java.util.Properties;
 
+import javax.sql.DataSource;
+
 import org.eclipse.persistence.jpa.PersistenceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.orm.jpa.JpaVendorAdapter;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
@@ -14,7 +17,10 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 public class JpaConfig {
 
   @Autowired
-  IamConfig iamConfig;
+  private JpaVendorAdapter jpaAdapter;
+
+  @Autowired
+  private DataSource iamDataSource;
 
   @Bean
   public LocalContainerEntityManagerFactoryBean entityManagerFactory() {
@@ -28,13 +34,12 @@ public class JpaConfig {
     LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
     em.setPackagesToScan("org.mitre", "it.infn.web");
     em.setPersistenceProviderClass(PersistenceProvider.class);
-    em.setDataSource(iamConfig.iamDataSource());
-    em.setJpaVendorAdapter(iamConfig.jpaAdapter());
+    em.setDataSource(iamDataSource);
+    em.setJpaVendorAdapter(jpaAdapter);
     em.setJpaProperties(jpaProperties);
     em.setPersistenceUnitName("defaultPersistenceUnit");
 
     return em;
-
   }
 
 }

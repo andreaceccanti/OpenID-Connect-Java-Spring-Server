@@ -1,7 +1,6 @@
 package org.mitre.web.config;
 
 import java.util.List;
-import java.util.Locale;
 
 import org.mitre.openid.connect.web.ServerConfigInterceptor;
 import org.mitre.openid.connect.web.UserInfoInterceptor;
@@ -10,15 +9,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.web.servlet.LocaleResolver;
 import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
-import org.springframework.web.servlet.i18n.LocaleChangeInterceptor;
-import org.springframework.web.servlet.i18n.SessionLocaleResolver;
 import org.springframework.web.servlet.view.BeanNameViewResolver;
 import org.springframework.web.servlet.view.InternalResourceViewResolver;
 import org.springframework.web.servlet.view.JstlView;
@@ -36,21 +32,21 @@ public class MvcConfig extends WebMvcConfigurerAdapter {
     converters.add(new MappingJackson2HttpMessageConverter());
   }
 
-  @Bean
-  public LocaleResolver localeResolver() {
+  // @Bean
+  // public LocaleResolver localeResolver() {
+  //
+  // SessionLocaleResolver slr = new SessionLocaleResolver();
+  // slr.setDefaultLocale(Locale.ENGLISH);
+  // return slr;
+  // }
 
-    SessionLocaleResolver slr = new SessionLocaleResolver();
-    slr.setDefaultLocale(Locale.ENGLISH);
-    return slr;
-  }
-
-  @Bean
-  public LocaleChangeInterceptor localeChangeInterceptor() {
-
-    LocaleChangeInterceptor lci = new LocaleChangeInterceptor();
-    lci.setParamName("lang");
-    return lci;
-  }
+  // @Bean
+  // public LocaleChangeInterceptor localeChangeInterceptor() {
+  //
+  // LocaleChangeInterceptor lci = new LocaleChangeInterceptor();
+  // lci.setParamName("lang");
+  // return lci;
+  // }
 
   @Bean
   public InternalResourceViewResolver defaultViewResolver() {
@@ -77,8 +73,7 @@ public class MvcConfig extends WebMvcConfigurerAdapter {
     super.addInterceptors(registry);
     registry.addInterceptor(new UserInfoInterceptor());
     registry.addInterceptor(new ServerConfigInterceptor());
-    registry.addInterceptor(localeChangeInterceptor());
-
+    // registry.addInterceptor(localeChangeInterceptor());
   };
 
   @Override
@@ -102,8 +97,7 @@ public class MvcConfig extends WebMvcConfigurerAdapter {
   public void addViewControllers(final ViewControllerRegistry registry) {
 
     registry.addViewController("/login").setViewName("login");
-    // registry.addViewController("/error").setViewName("error");
-    // registry.addViewController("/home").setViewName("home");
+    registry.addViewController("/error").setViewName("error");
   }
 
 }

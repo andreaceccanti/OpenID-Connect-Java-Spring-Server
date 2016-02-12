@@ -1,7 +1,10 @@
 package org.mitre.web.config;
 
+import javax.sql.DataSource;
+
 import org.mitre.oauth2.service.impl.DefaultOAuth2AuthorizationCodeService;
 import org.mitre.oauth2.service.impl.DefaultOAuth2ClientDetailsEntityService;
+import org.mitre.oauth2.service.impl.DefaultOAuth2ProviderTokenService;
 import org.mitre.oauth2.token.ChainedTokenGranter;
 import org.mitre.oauth2.token.JWTAssertionTokenGranter;
 import org.mitre.oauth2.token.StructuredScopeAwareOAuth2RequestValidator;
@@ -13,11 +16,9 @@ import org.springframework.security.oauth2.config.annotation.configurers.ClientD
 import org.springframework.security.oauth2.config.annotation.web.configuration.AuthorizationServerConfigurerAdapter;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableAuthorizationServer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerEndpointsConfigurer;
-import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.OAuth2RequestValidator;
 import org.springframework.security.oauth2.provider.approval.UserApprovalHandler;
 import org.springframework.security.oauth2.provider.code.AuthorizationCodeServices;
-import org.springframework.security.oauth2.provider.request.DefaultOAuth2RequestFactory;
 
 @Configuration
 @EnableAuthorizationServer
@@ -25,34 +26,24 @@ public class IamAuthorizationServer
   extends AuthorizationServerConfigurerAdapter {
 
   @Autowired
-  private IamConfig iamConfig;
+  private DefaultOAuth2ClientDetailsEntityService clientDetailsEntityService;
 
   @Autowired
-  private DefaultOAuth2ClientDetailsEntityService clientDetailsEntityService;
+  private ChainedTokenGranter chainedTokenGranter;
+
+  @Autowired
+  private JWTAssertionTokenGranter jwtAssertionTokenGranter;
+
+  @Autowired
+  private DataSource iamDataSource;
+
+  @Autowired
+  private DefaultOAuth2ProviderTokenService tokenService;
 
   @Bean
   public AuthorizationCodeServices authCodeService() {
 
     return new DefaultOAuth2AuthorizationCodeService();
-  }
-
-  private OAuth2RequestFactory requestFactory() {
-
-    return new DefaultOAuth2RequestFactory(clientDetailsEntityService);
-  }
-
-  @Bean
-  public ChainedTokenGranter chainedTokenGranter() {
-
-    return new ChainedTokenGranter(iamConfig.tokenService,
-      clientDetailsEntityService, requestFactory());
-  }
-
-  @Bean
-  public JWTAssertionTokenGranter jwtAssertionTokenGranter() {
-
-    return new JWTAssertionTokenGranter(iamConfig.tokenService,
-      clientDetailsEntityService, requestFactory());
   }
 
   @Bean
@@ -71,8 +62,7 @@ public class IamAuthorizationServer
   public void configure(final ClientDetailsServiceConfigurer clients)
     throws Exception {
 
-    clients.jdbc(iamConfig.iamDataSource());
-
+    clients.jdbc(iamDataSource);
   }
 
   @Override
@@ -84,15 +74,14 @@ public class IamAuthorizationServer
       .pathMapping("/oauth/error", "/error");
 
     endpoints.clientDetailsService(clientDetailsEntityService);
-    endpoints.tokenServices(iamConfig.tokenService)
+    endpoints.tokenServices(tokenService)
       .userApprovalHandler(tofuUserAppovalHandler())
       .requestValidator(oauthRequestValidator());
 
-    endpoints.tokenGranter(chainedTokenGranter())
-      .tokenGranter(jwtAssertionTokenGranter());
+    endpoints.tokenGranter(chainedTokenGranter)
+      .tokenGranter(jwtAssertionTokenGranter);
 
     endpoints.authorizationCodeServices(authCodeService());
-
   }
 
 }

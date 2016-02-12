@@ -3,6 +3,13 @@ package org.mitre.web;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
+import org.mitre.web.config.IamAuthorizationServer;
+import org.mitre.web.config.IamConfig;
+import org.mitre.web.config.IamResourceServer;
+import org.mitre.web.config.JpaConfig;
+import org.mitre.web.config.MvcConfig;
+import org.mitre.web.config.SchedulingConfig;
+import org.mitre.web.config.WebSecurityConfig;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -27,7 +34,10 @@ public class Application extends SpringBootServletInitializer {
   protected SpringApplicationBuilder configure(
     final SpringApplicationBuilder application) {
 
-    return application.sources(Application.class);
+    application.sources(Application.class, IamConfig.class,
+      IamAuthorizationServer.class, IamResourceServer.class, JpaConfig.class,
+      MvcConfig.class, SchedulingConfig.class, WebSecurityConfig.class);
+    return application;
   }
 
   @Bean(destroyMethod = "shutdown")

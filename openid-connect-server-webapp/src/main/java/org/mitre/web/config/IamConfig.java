@@ -8,14 +8,11 @@ import javax.sql.DataSource;
 import org.mitre.jose.keystore.JWKSetKeyStore;
 import org.mitre.jwt.encryption.service.impl.DefaultJWTEncryptionAndDecryptionService;
 import org.mitre.jwt.signer.service.impl.DefaultJWTSigningAndValidationService;
-import org.mitre.oauth2.service.impl.DefaultOAuth2AuthorizationCodeService;
-import org.mitre.oauth2.service.impl.DefaultOAuth2ProviderTokenService;
-import org.mitre.oauth2.web.CorsFilter;
 import org.mitre.openid.connect.config.ConfigurationPropertiesBean;
 import org.mitre.openid.connect.config.JsonMessageSource;
-import org.mitre.openid.connect.service.ApprovedSiteService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.embedded.FilterRegistrationBean;
+import org.springframework.boot.context.embedded.ServletRegistrationBean;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,8 +28,9 @@ import org.springframework.orm.jpa.JpaVendorAdapter;
 import org.springframework.orm.jpa.vendor.EclipseLinkJpaVendorAdapter;
 import org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler;
 import org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint;
-import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.web.filter.DelegatingFilterProxy;
+import org.springframework.web.servlet.DispatcherServlet;
 
 import com.nimbusds.jose.JWEAlgorithm;
 import com.zaxxer.hikari.HikariConfig;
@@ -65,28 +63,10 @@ public class IamConfig {
   @Value("${spring.datasource.databasePlatform}")
   private String dbPlatform;
 
-  @Autowired
-  DefaultOAuth2ProviderTokenService tokenService;
-
-  @Autowired
-  ApprovedSiteService defaultApprovedSiteService;
-
   @Bean
   public PlatformTransactionManager defaultTransactionManager() {
 
     return new DataSourceTransactionManager(iamDataSource());
-  }
-
-  @Bean
-  public DefaultOAuth2AuthorizationCodeService codeService() {
-
-    return new DefaultOAuth2AuthorizationCodeService();
-  }
-
-  @Bean
-  public CorsFilter corsFilter() {
-
-    return new CorsFilter();
   }
 
   @Bean
@@ -159,7 +139,7 @@ public class IamConfig {
 
   // authz-config.xml
   @Bean
-  public AccessDeniedHandler oauthAccessDeniedHandler() {
+  public OAuth2AccessDeniedHandler oauthAccessDeniedHandler() {
 
     return new OAuth2AccessDeniedHandler();
   }
@@ -217,5 +197,31 @@ public class IamConfig {
   }
 
   // local-config.xml
+
+  /// web.xml
+  @Bean
+  public ServletRegistrationBean servlet() {
+
+    ServletRegistrationBean srb = new ServletRegistrationBean();
+    srb.setName("spring");
+    srb.setServlet(new DispatcherServlet());
+    srb.setLoadOnStartup(1);
+    srb.addUrlMappings("/");
+
+    return srb;
+  }
+
+  @Bean
+  public FilterRegistrationBean filter() {
+
+    FilterRegistrationBean frb = new FilterRegistrationBean();
+    frb.setName("springSecurityFilterChain");
+    frb.setFilter(new DelegatingFilterProxy());
+    frb.addInitParameter("contextAttribute",
+      "org.springframework.web.servlet.FrameworkServlet.CONTEXT.spring");
+    frb.addUrlPatterns("/*");
+
+    return frb;
+  }
 
 }
