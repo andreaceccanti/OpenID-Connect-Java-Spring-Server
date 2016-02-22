@@ -77,6 +77,5 @@ public class IamResourceServer extends ResourceServerConfigurerAdapter {
       .and().addFilterAfter(corsFilter, SecurityContextPersistenceFilter.class);
     // @formatter:on
 
-    // http.authorizeRequests().anyRequest().authenticated();
   }
 }

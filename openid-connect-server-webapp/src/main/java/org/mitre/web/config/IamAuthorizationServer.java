@@ -2,20 +2,17 @@ package org.mitre.web.config;
 
 import javax.sql.DataSource;
 
-import org.mitre.oauth2.service.impl.DefaultOAuth2AuthorizationCodeService;
 import org.mitre.oauth2.service.impl.DefaultOAuth2ClientDetailsEntityService;
 import org.mitre.oauth2.service.impl.DefaultOAuth2ProviderTokenService;
 import org.mitre.oauth2.token.ChainedTokenGranter;
 import org.mitre.oauth2.token.JWTAssertionTokenGranter;
-import org.mitre.oauth2.token.StructuredScopeAwareOAuth2RequestValidator;
-import org.mitre.openid.connect.token.TofuUserApprovalHandler;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.config.annotation.configurers.ClientDetailsServiceConfigurer;
 import org.springframework.security.oauth2.config.annotation.web.configuration.AuthorizationServerConfigurerAdapter;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableAuthorizationServer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerEndpointsConfigurer;
+import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerSecurityConfigurer;
 import org.springframework.security.oauth2.provider.OAuth2RequestValidator;
 import org.springframework.security.oauth2.provider.approval.UserApprovalHandler;
 import org.springframework.security.oauth2.provider.code.AuthorizationCodeServices;
@@ -40,23 +37,14 @@ public class IamAuthorizationServer
   @Autowired
   private DefaultOAuth2ProviderTokenService tokenService;
 
-  @Bean
-  public AuthorizationCodeServices authCodeService() {
+  @Autowired
+  private OAuth2RequestValidator oauth2RequestValidator;
 
-    return new DefaultOAuth2AuthorizationCodeService();
-  }
+  @Autowired
+  private UserApprovalHandler tofuUserAppovalHandler;
 
-  @Bean
-  public UserApprovalHandler tofuUserAppovalHandler() {
-
-    return new TofuUserApprovalHandler();
-  }
-
-  @Bean
-  public OAuth2RequestValidator oauthRequestValidator() {
-
-    return new StructuredScopeAwareOAuth2RequestValidator();
-  }
+  @Autowired
+  private AuthorizationCodeServices authCodeService;
 
   @Override
   public void configure(final ClientDetailsServiceConfigurer clients)
@@ -75,13 +63,21 @@ public class IamAuthorizationServer
 
     endpoints.clientDetailsService(clientDetailsEntityService);
     endpoints.tokenServices(tokenService)
-      .userApprovalHandler(tofuUserAppovalHandler())
-      .requestValidator(oauthRequestValidator());
+      .userApprovalHandler(tofuUserAppovalHandler)
+      .requestValidator(oauth2RequestValidator);
 
     endpoints.tokenGranter(chainedTokenGranter)
       .tokenGranter(jwtAssertionTokenGranter);
 
-    endpoints.authorizationCodeServices(authCodeService());
+    endpoints.authorizationCodeServices(authCodeService);
+
+  }
+
+  @Override
+  public void configure(final AuthorizationServerSecurityConfigurer oauthServer)
+    throws Exception {
+
+    oauthServer.allowFormAuthenticationForClients();
   }
 
 }

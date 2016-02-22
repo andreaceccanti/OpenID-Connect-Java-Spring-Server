@@ -12,6 +12,7 @@ import org.mitre.web.config.SchedulingConfig;
 import org.mitre.web.config.WebSecurityConfig;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.context.web.SpringBootServletInitializer;
@@ -22,6 +23,7 @@ import org.springframework.context.annotation.PropertySource;
 @SpringBootApplication
 @ComponentScan(basePackages = { "org.mitre" })
 @PropertySource("classpath:application.yml")
+@EnableAutoConfiguration
 public class Application extends SpringBootServletInitializer {
 
   public static void main(final String[] args) {
@@ -42,7 +44,7 @@ public class Application extends SpringBootServletInitializer {
 
   @Bean(destroyMethod = "shutdown")
   public Executor taskScheduler(
-    final @Value("${server.scheduler-pool-size:10}") int scheduledThreadPoolSize) {
+    final @Value("${server.scheduler-pool-size: 10}") int scheduledThreadPoolSize) {
 
     return Executors.newScheduledThreadPool(scheduledThreadPoolSize);
   }

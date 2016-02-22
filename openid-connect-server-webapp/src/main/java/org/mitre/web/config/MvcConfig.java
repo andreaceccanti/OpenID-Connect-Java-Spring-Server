@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.mitre.openid.connect.web.ServerConfigInterceptor;
 import org.mitre.openid.connect.web.UserInfoInterceptor;
-import org.springframework.context.annotation.Bean;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
@@ -15,13 +15,16 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
-import org.springframework.web.servlet.view.BeanNameViewResolver;
-import org.springframework.web.servlet.view.InternalResourceViewResolver;
-import org.springframework.web.servlet.view.JstlView;
 
 @Configuration
 @EnableWebMvc
 public class MvcConfig extends WebMvcConfigurerAdapter {
+
+  @Autowired
+  private ServerConfigInterceptor serverConfigInterceptor;
+
+  @Autowired
+  private UserInfoInterceptor userInfoInterceptor;
 
   @Override
   public void configureMessageConverters(
@@ -32,49 +35,13 @@ public class MvcConfig extends WebMvcConfigurerAdapter {
     converters.add(new MappingJackson2HttpMessageConverter());
   }
 
-  // @Bean
-  // public LocaleResolver localeResolver() {
-  //
-  // SessionLocaleResolver slr = new SessionLocaleResolver();
-  // slr.setDefaultLocale(Locale.ENGLISH);
-  // return slr;
-  // }
-
-  // @Bean
-  // public LocaleChangeInterceptor localeChangeInterceptor() {
-  //
-  // LocaleChangeInterceptor lci = new LocaleChangeInterceptor();
-  // lci.setParamName("lang");
-  // return lci;
-  // }
-
-  @Bean
-  public InternalResourceViewResolver defaultViewResolver() {
-
-    InternalResourceViewResolver resolver = new InternalResourceViewResolver();
-    resolver.setViewClass(JstlView.class);
-    resolver.setPrefix("WEB-INF/views/");
-    resolver.setSuffix(".jsp");
-    resolver.setOrder(2);
-    return resolver;
-  }
-
-  @Bean
-  public BeanNameViewResolver beanNameViewResolver() {
-
-    BeanNameViewResolver resolver = new BeanNameViewResolver();
-    resolver.setOrder(1);
-    return resolver;
-  }
-
   @Override
   public void addInterceptors(final InterceptorRegistry registry) {
 
     super.addInterceptors(registry);
-    registry.addInterceptor(new UserInfoInterceptor());
-    registry.addInterceptor(new ServerConfigInterceptor());
-    // registry.addInterceptor(localeChangeInterceptor());
-  };
+    registry.addInterceptor(userInfoInterceptor);
+    registry.addInterceptor(serverConfigInterceptor);
+  }
 
   @Override
   public void addResourceHandlers(final ResourceHandlerRegistry registry) {
