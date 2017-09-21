@@ -1,6 +1,7 @@
 /*******************************************************************************
- * Copyright 2016 The MITRE Corporation
- *   and the MIT Internet Trust Consortium
+ * Copyright 2017 The MIT Internet Trust Consortium
+ *
+ * Portions copyright 2011-2013 The MITRE Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +16,7 @@
  * limitations under the License.
  *******************************************************************************/
 /**
- * 
+ *
  */
 package org.mitre.oauth2.model;
 
@@ -51,6 +52,8 @@ import org.mitre.oauth2.model.convert.JWEAlgorithmStringConverter;
 import org.mitre.oauth2.model.convert.JWEEncryptionMethodStringConverter;
 import org.mitre.oauth2.model.convert.JWKSetStringConverter;
 import org.mitre.oauth2.model.convert.JWSAlgorithmStringConverter;
+import org.mitre.oauth2.model.convert.JWTStringConverter;
+import org.mitre.oauth2.model.convert.PKCEAlgorithmStringConverter;
 import org.mitre.oauth2.model.convert.SimpleGrantedAuthorityStringConverter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -59,10 +62,11 @@ import com.nimbusds.jose.EncryptionMethod;
 import com.nimbusds.jose.JWEAlgorithm;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jwt.JWT;
 
 /**
  * @author jricher
- * 
+ *
  */
 @Entity
 @Table(name = "client_details")
@@ -99,6 +103,8 @@ public class ClientDetailsEntity implements ClientDetails {
 	private String policyUri;
 	private String jwksUri; // URI pointer to keys
 	private JWKSet jwks; // public key stored by value
+	private String softwareId;
+	private String softwareVersion;
 
 	/** Fields from OIDC Client Registration Specification **/
 	private AppType applicationType; // application_type
@@ -141,9 +147,16 @@ public class ClientDetailsEntity implements ClientDetails {
 	private Integer idTokenValiditySeconds; //timeout for id tokens
 	private Date createdAt; // time the client was created
 	private boolean clearAccessTokensOnRefresh = true; // do we clear access tokens on refresh?
+	private Integer deviceCodeValiditySeconds; // timeout for device codes
 
 	/** fields for UMA */
 	private Set<String> claimsRedirectUris;
+
+	/** Software statement **/
+	private JWT softwareStatement;
+
+	/** PKCE **/
+	private PKCEAlgorithm codeChallengeMethod;
 
 	public enum AuthMethod {
 		SECRET_POST("client_secret_post"),
@@ -254,7 +267,7 @@ public class ClientDetailsEntity implements ClientDetails {
 	}
 
 	/**
-	 * 
+	 *
 	 * @param id the id to set
 	 */
 	public void setId(Long id) {
@@ -301,7 +314,7 @@ public class ClientDetailsEntity implements ClientDetails {
 
 	/**
 	 * Number of seconds ID token is valid for. MUST be a positive integer, can not be null.
-	 * 
+	 *
 	 * @return the idTokenValiditySeconds
 	 */
 	@Basic
@@ -354,7 +367,7 @@ public class ClientDetailsEntity implements ClientDetails {
 	}
 
 	/**
-	 * 
+	 *
 	 */
 	@Override
 	@Transient
@@ -567,9 +580,9 @@ public class ClientDetailsEntity implements ClientDetails {
 	/**
 	 * This library does not make use of this field, so it is not
 	 * stored using our persistence layer.
-	 * 
+	 *
 	 * However, it's somehow required by SECOUATH.
-	 * 
+	 *
 	 * @return an empty map
 	 */
 	@Override
@@ -986,6 +999,88 @@ public class ClientDetailsEntity implements ClientDetails {
 	 */
 	public void setClaimsRedirectUris(Set<String> claimsRedirectUris) {
 		this.claimsRedirectUris = claimsRedirectUris;
+	}
+
+	/**
+	 * @return the softwareStatement
+	 */
+	@Basic
+	@Column(name = "software_statement")
+	@Convert(converter = JWTStringConverter.class)
+	public JWT getSoftwareStatement() {
+		return softwareStatement;
+	}
+
+	/**
+	 * @param softwareStatement the softwareStatement to set
+	 */
+	public void setSoftwareStatement(JWT softwareStatement) {
+		this.softwareStatement = softwareStatement;
+	}
+
+	/**
+	 * @return the codeChallengeMethod
+	 */
+	@Basic
+	@Column(name = "code_challenge_method")
+	@Convert(converter = PKCEAlgorithmStringConverter.class)
+	public PKCEAlgorithm getCodeChallengeMethod() {
+		return codeChallengeMethod;
+	}
+
+	/**
+	 * @param codeChallengeMethod the codeChallengeMethod to set
+	 */
+	public void setCodeChallengeMethod(PKCEAlgorithm codeChallengeMethod) {
+		this.codeChallengeMethod = codeChallengeMethod;
+	}
+
+	/**
+	 * @return the deviceCodeValiditySeconds
+	 */
+	@Basic
+	@Column(name="device_code_validity_seconds")
+	public Integer getDeviceCodeValiditySeconds() {
+		return deviceCodeValiditySeconds;
+	}
+
+	/**
+	 * @param deviceCodeValiditySeconds the deviceCodeValiditySeconds to set
+	 */
+	public void setDeviceCodeValiditySeconds(Integer deviceCodeValiditySeconds) {
+		this.deviceCodeValiditySeconds = deviceCodeValiditySeconds;
+	}
+
+	/**
+	 * @return the softwareId
+	 */
+	@Basic
+	@Column(name="software_id")
+	public String getSoftwareId() {
+		return softwareId;
+	}
+
+	/**
+	 * @param softwareId the softwareId to set
+	 */
+	public void setSoftwareId(String softwareId) {
+		this.softwareId = softwareId;
+	}
+
+	/**
+	 * @return the softwareVersion
+	 */
+	@Basic
+	@Column(name="software_version")
+	public String getSoftwareVersion() {
+		return softwareVersion;
+	}
+
+	/**
+	 * @param softwareVersion the softwareVersion to set
+	 */
+	public void setSoftwareVersion(String softwareVersion) {
+		this.softwareVersion = softwareVersion;
 	}
 
 }

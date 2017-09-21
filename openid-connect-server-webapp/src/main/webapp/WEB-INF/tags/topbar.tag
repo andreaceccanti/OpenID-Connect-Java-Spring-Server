@@ -34,52 +34,26 @@
 				<span class="icon-bar"></span> 
 				<span class="icon-bar"></span>
 			</button>
-			<a class="brand" href=""><img src="${ config.logoImageUrl }" /> ${config.topbarTitle}</a>
+			<a class="brand" href="">
+				<img src="${ config.logoImageUrl }" />
+				<span>
+					<span class="visible-phone">${config.shortTopbarTitle}</span> 
+					<span class="hidden-phone">${config.topbarTitle}</span>
+				</span>
+			</a>
 			<c:if test="${ not empty pageName }">
 				<div class="nav-collapse collapse">
 					<ul class="nav">
-						<c:choose>
-							<c:when test="${pageName == 'Home'}">
-								<li class="active"><a href="" data-toggle="collapse" data-target=".nav-collapse"><spring:message code="topbar.home"/></a></li>
-							</c:when>
-							<c:otherwise>
-								<li><a href="" data-toggle="collapse" data-target=".nav-collapse"><spring:message code="topbar.home"/></a></li>
-							</c:otherwise>
-						</c:choose>
-						<c:choose>
-							<c:when test="${pageName == 'About'}">
-								<li class="active" data-toggle="collapse" data-target=".nav-collapse"><a href=""><spring:message code="topbar.about"/></a></li>
-							</c:when>
-							<c:otherwise>
-								<li><a href="about" data-toggle="collapse" data-target=".nav-collapse"><spring:message code="topbar.about"/></a></li>
-							</c:otherwise>
-						</c:choose>
-						<c:choose>
-							<c:when test="${pageName == 'Statistics'}">
-								<li class="active" data-toggle="collapse" data-target=".nav-collapse"><a href=""><spring:message code="topbar.statistics"/></a></li>
-							</c:when>
-							<c:otherwise>
-								<li><a href="stats" data-toggle="collapse" data-target=".nav-collapse"><spring:message code="topbar.statistics"/></a></li>
-							</c:otherwise>
-						</c:choose>
-						<c:choose>
-							<c:when test="${pageName == 'Contact'}">
-								<li class="active" data-toggle="collapse" data-target=".nav-collapse"><a href=""><spring:message code="topbar.contact"/></a></li>
-							</c:when>
-							<c:otherwise>
-								<li><a href="contact" data-toggle="collapse" data-target=".nav-collapse"><spring:message code="topbar.contact"/></a></li>
-							</c:otherwise>
-						</c:choose>
-	
+						<o:navmenu pageName="${ pageName }" />
 					</ul>
 	
-						<security:authorize access="hasRole('ROLE_USER')">
-		
-							<ul class="nav hidden-desktop">
-							<o:actionmenu />
-							</ul>
+					<security:authorize access="hasRole('ROLE_USER')">
 	
-						</security:authorize>
+						<ul class="nav hidden-desktop">
+						<o:actionmenu />
+						</ul>
+
+					</security:authorize>
 	
 					<!-- use a full user menu and button when not collapsed -->
 					<ul class="nav pull-right visible-desktop">

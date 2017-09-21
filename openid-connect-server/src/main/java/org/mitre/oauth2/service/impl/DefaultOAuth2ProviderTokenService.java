@@ -1,6 +1,7 @@
 /*******************************************************************************
- * Copyright 2016 The MITRE Corporation
- *   and the MIT Internet Trust Consortium
+ * Copyright 2017 The MIT Internet Trust Consortium
+ *
+ * Portions copyright 2011-2013 The MITRE Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,10 +16,17 @@
  * limitations under the License.
  *******************************************************************************/
 /**
- * 
+ *
  */
 package org.mitre.oauth2.service.impl;
 
+import static org.mitre.openid.connect.request.ConnectRequestParameters.CODE_CHALLENGE;
+import static org.mitre.openid.connect.request.ConnectRequestParameters.CODE_CHALLENGE_METHOD;
+import static org.mitre.openid.connect.request.ConnectRequestParameters.CODE_VERIFIER;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
@@ -26,10 +34,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import org.mitre.data.AbstractPageOperationTemplate;
+import org.mitre.data.DefaultPageCriteria;
 import org.mitre.oauth2.model.AuthenticationHolderEntity;
 import org.mitre.oauth2.model.ClientDetailsEntity;
 import org.mitre.oauth2.model.OAuth2AccessTokenEntity;
 import org.mitre.oauth2.model.OAuth2RefreshTokenEntity;
+import org.mitre.oauth2.model.PKCEAlgorithm;
 import org.mitre.oauth2.model.SystemScope;
 import org.mitre.oauth2.repository.AuthenticationHolderRepository;
 import org.mitre.oauth2.repository.OAuth2TokenRepository;
@@ -44,23 +55,26 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
+import org.springframework.security.oauth2.common.exceptions.InvalidRequestException;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.token.TokenEnhancer;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Sets;
+import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.PlainJWT;
 
 
 /**
  * @author jricher
- * 
+ *
  */
 @Service("defaultOAuth2ProviderTokenService")
 public class DefaultOAuth2ProviderTokenService implements OAuth2TokenEntityService {
@@ -146,7 +160,7 @@ public class DefaultOAuth2ProviderTokenService implements OAuth2TokenEntityServi
 			return token;
 		}
 	}
-	
+
 	/**
 	 * Utility function to delete a refresh token that's expired before returning it.
 	 * @param token the token to check
@@ -164,18 +178,48 @@ public class DefaultOAuth2ProviderTokenService implements OAuth2TokenEntityServi
 			return token;
 		}
 	}
-	
+
 	@Override
+	@Transactional(value="defaultTransactionManager")
 	public OAuth2AccessTokenEntity createAccessToken(OAuth2Authentication authentication) throws AuthenticationException, InvalidClientException {
 		if (authentication != null && authentication.getOAuth2Request() != null) {
 			// look up our client
-			OAuth2Request clientAuth = authentication.getOAuth2Request();
+			OAuth2Request request = authentication.getOAuth2Request();
 
-			ClientDetailsEntity client = clientDetailsService.loadClientByClientId(clientAuth.getClientId());
+			ClientDetailsEntity client = clientDetailsService.loadClientByClientId(request.getClientId());
 
 			if (client == null) {
-				throw new InvalidClientException("Client not found: " + clientAuth.getClientId());
+				throw new InvalidClientException("Client not found: " + request.getClientId());
 			}
+
+
+			// handle the PKCE code challenge if present
+			if (request.getExtensions().containsKey(CODE_CHALLENGE)) {
+				String challenge = (String) request.getExtensions().get(CODE_CHALLENGE);
+				PKCEAlgorithm alg = PKCEAlgorithm.parse((String) request.getExtensions().get(CODE_CHALLENGE_METHOD));
+
+				String verifier = request.getRequestParameters().get(CODE_VERIFIER);
+
+				if (alg.equals(PKCEAlgorithm.plain)) {
+					// do a direct string comparison
+					if (!challenge.equals(verifier)) {
+						throw new InvalidRequestException("Code challenge and verifier do not match");
+					}
+				} else if (alg.equals(PKCEAlgorithm.S256)) {
+					// hash the verifier
+					try {
+						MessageDigest digest = MessageDigest.getInstance("SHA-256");
+						String hash = Base64URL.encode(digest.digest(verifier.getBytes(StandardCharsets.US_ASCII))).toString();
+						if (!challenge.equals(hash)) {
+							throw new InvalidRequestException("Code challenge and verifier do not match");
+						}
+					} catch (NoSuchAlgorithmException e) {
+						logger.error("Unknown algorithm for PKCE digest", e);
+					}
+				}
+
+			}
+
 
 			OAuth2AccessTokenEntity token = new OAuth2AccessTokenEntity();//accessTokenFactory.createNewAccessToken();
 
@@ -185,7 +229,7 @@ public class DefaultOAuth2ProviderTokenService implements OAuth2TokenEntityServi
 			// inherit the scope from the auth, but make a new set so it is
 			//not unmodifiable. Unmodifiables don't play nicely with Eclipselink, which
 			//wants to use the clone operation.
-			Set<SystemScope> scopes = scopeService.fromStrings(clientAuth.getScope());
+			Set<SystemScope> scopes = scopeService.fromStrings(request.getScope());
 
 			// remove any of the special system scopes
 			scopes = scopeService.removeReservedScopes(scopes);
@@ -212,10 +256,6 @@ public class DefaultOAuth2ProviderTokenService implements OAuth2TokenEntityServi
 				token.setRefreshToken(savedRefreshToken);
 			}
 
-			OAuth2AccessTokenEntity enhancedToken = (OAuth2AccessTokenEntity) tokenEnhancer.enhance(token, authentication);
-
-			OAuth2AccessTokenEntity savedToken = tokenRepository.saveAccessToken(enhancedToken);
-
 			//Add approved site reference, if any
 			OAuth2Request originalAuthRequest = authHolder.getAuthentication().getOAuth2Request();
 
@@ -223,12 +263,13 @@ public class DefaultOAuth2ProviderTokenService implements OAuth2TokenEntityServi
 
 				Long apId = Long.parseLong((String) originalAuthRequest.getExtensions().get("approved_site"));
 				ApprovedSite ap = approvedSiteService.getById(apId);
-				Set<OAuth2AccessTokenEntity> apTokens = ap.getApprovedAccessTokens();
-				apTokens.add(savedToken);
-				ap.setApprovedAccessTokens(apTokens);
-				approvedSiteService.save(ap);
 
+				token.setApprovedSite(ap);
 			}
+
+			OAuth2AccessTokenEntity enhancedToken = (OAuth2AccessTokenEntity) tokenEnhancer.enhance(token, authentication);
+
+			OAuth2AccessTokenEntity savedToken = saveAccessToken(enhancedToken);
 
 			if (savedToken.getRefreshToken() != null) {
 				tokenRepository.saveRefreshToken(savedToken.getRefreshToken()); // make sure we save any changes that might have been enhanced
@@ -273,11 +314,18 @@ public class DefaultOAuth2ProviderTokenService implements OAuth2TokenEntityServi
 	}
 
 	@Override
+	@Transactional(value="defaultTransactionManager")
 	public OAuth2AccessTokenEntity refreshAccessToken(String refreshTokenValue, TokenRequest authRequest) throws AuthenticationException {
+		
+		if (Strings.isNullOrEmpty(refreshTokenValue)) {
+			// throw an invalid token exception if there's no refresh token value at all
+			throw new InvalidTokenException("Invalid refresh token: " + refreshTokenValue);
+		}
 
 		OAuth2RefreshTokenEntity refreshToken = clearExpiredRefreshToken(tokenRepository.getRefreshTokenByValue(refreshTokenValue));
 
 		if (refreshToken == null) {
+			// throw an invalid token exception if we couldn't find the token
 			throw new InvalidTokenException("Invalid refresh token: " + refreshTokenValue);
 		}
 
@@ -418,6 +466,7 @@ public class DefaultOAuth2ProviderTokenService implements OAuth2TokenEntityServi
 	 * Revoke a refresh token and all access tokens issued to it.
 	 */
 	@Override
+	@Transactional(value="defaultTransactionManager")
 	public void revokeRefreshToken(OAuth2RefreshTokenEntity refreshToken) {
 		tokenRepository.clearAccessTokensForRefreshToken(refreshToken);
 		tokenRepository.removeRefreshToken(refreshToken);
@@ -427,6 +476,7 @@ public class DefaultOAuth2ProviderTokenService implements OAuth2TokenEntityServi
 	 * Revoke an access token.
 	 */
 	@Override
+	@Transactional(value="defaultTransactionManager")
 	public void revokeAccessToken(OAuth2AccessTokenEntity accessToken) {
 		tokenRepository.removeAccessToken(accessToken);
 	}
@@ -454,66 +504,65 @@ public class DefaultOAuth2ProviderTokenService implements OAuth2TokenEntityServi
 	@Override
 	public void clearExpiredTokens() {
 		logger.debug("Cleaning out all expired tokens");
-		
-		// get all the duplicated tokens first to maintain consistency
-		tokenRepository.clearDuplicateAccessTokens();
-		tokenRepository.clearDuplicateRefreshTokens();
 
-		Collection<OAuth2AccessTokenEntity> accessTokens = getExpiredAccessTokens();
-		if (accessTokens.size() > 0) {
-			logger.info("Found " + accessTokens.size() + " expired access tokens");
-		}
-		for (OAuth2AccessTokenEntity oAuth2AccessTokenEntity : accessTokens) {
-			try {
-				revokeAccessToken(oAuth2AccessTokenEntity);
-			} catch (IllegalArgumentException e) {
-				//An ID token is deleted with its corresponding access token, but then the ID token is on the list of expired tokens as well and there is
-				//nothing in place to distinguish it from any other.
-				//An attempt to delete an already deleted token returns an error, stopping the cleanup dead. We need it to keep going.
+		new AbstractPageOperationTemplate<OAuth2AccessTokenEntity>("clearExpiredAccessTokens") {
+			@Override
+			public Collection<OAuth2AccessTokenEntity> fetchPage() {
+				return tokenRepository.getAllExpiredAccessTokens(new DefaultPageCriteria());
 			}
-		}
 
-		Collection<OAuth2RefreshTokenEntity> refreshTokens = getExpiredRefreshTokens();
-		if (refreshTokens.size() > 0) {
-			logger.info("Found " + refreshTokens.size() + " expired refresh tokens");
-		}
-		for (OAuth2RefreshTokenEntity oAuth2RefreshTokenEntity : refreshTokens) {
-			revokeRefreshToken(oAuth2RefreshTokenEntity);
-		}
+			@Override
+			public void doOperation(OAuth2AccessTokenEntity item) {
+				revokeAccessToken(item);
+			}
+		}.execute();
 
-		Collection<AuthenticationHolderEntity> authHolders = getOrphanedAuthenticationHolders();
-		if (authHolders.size() > 0) {
-			logger.info("Found " + authHolders.size() + " orphaned authentication holders");
-		}
-		for(AuthenticationHolderEntity authHolder : authHolders) {
-			authenticationHolderRepository.remove(authHolder);
-		}
-	}
+		new AbstractPageOperationTemplate<OAuth2RefreshTokenEntity>("clearExpiredRefreshTokens") {
+			@Override
+			public Collection<OAuth2RefreshTokenEntity> fetchPage() {
+				return tokenRepository.getAllExpiredRefreshTokens(new DefaultPageCriteria());
+			}
 
-	private Collection<OAuth2AccessTokenEntity> getExpiredAccessTokens() {
-		return Sets.newHashSet(tokenRepository.getAllExpiredAccessTokens());
-	}
+			@Override
+			public void doOperation(OAuth2RefreshTokenEntity item) {
+				revokeRefreshToken(item);
+			}
+		}.execute();
 
-	private Collection<OAuth2RefreshTokenEntity> getExpiredRefreshTokens() {
-		return Sets.newHashSet(tokenRepository.getAllExpiredRefreshTokens());
-	}
+		new AbstractPageOperationTemplate<AuthenticationHolderEntity>("clearExpiredAuthenticationHolders") {
+			@Override
+			public Collection<AuthenticationHolderEntity> fetchPage() {
+				return authenticationHolderRepository.getOrphanedAuthenticationHolders(new DefaultPageCriteria());
+			}
 
-	private Collection<AuthenticationHolderEntity> getOrphanedAuthenticationHolders() {
-		return Sets.newHashSet(authenticationHolderRepository.getOrphanedAuthenticationHolders());
+			@Override
+			public void doOperation(AuthenticationHolderEntity item) {
+				authenticationHolderRepository.remove(item);
+			}
+		}.execute();
 	}
 
 	/* (non-Javadoc)
 	 * @see org.mitre.oauth2.service.OAuth2TokenEntityService#saveAccessToken(org.mitre.oauth2.model.OAuth2AccessTokenEntity)
 	 */
 	@Override
+	@Transactional(value="defaultTransactionManager")
 	public OAuth2AccessTokenEntity saveAccessToken(OAuth2AccessTokenEntity accessToken) {
-		return tokenRepository.saveAccessToken(accessToken);
+		OAuth2AccessTokenEntity newToken = tokenRepository.saveAccessToken(accessToken);
+
+		// if the old token has any additional information for the return from the token endpoint, carry it through here after save
+		if (accessToken.getAdditionalInformation() != null && !accessToken.getAdditionalInformation().isEmpty()) {
+			newToken.getAdditionalInformation().putAll(accessToken.getAdditionalInformation());
+		}
+
+		return newToken;
 	}
 
 	/* (non-Javadoc)
 	 * @see org.mitre.oauth2.service.OAuth2TokenEntityService#saveRefreshToken(org.mitre.oauth2.model.OAuth2RefreshTokenEntity)
 	 */
 	@Override
+	@Transactional(value="defaultTransactionManager")
 	public OAuth2RefreshTokenEntity saveRefreshToken(OAuth2RefreshTokenEntity refreshToken) {
 		return tokenRepository.saveRefreshToken(refreshToken);
 	}
@@ -531,15 +580,6 @@ public class DefaultOAuth2ProviderTokenService implements OAuth2TokenEntityServi
 	public void setTokenEnhancer(TokenEnhancer tokenEnhancer) {
 		this.tokenEnhancer = tokenEnhancer;
 	}
-
-	/* (non-Javadoc)
-	 * @see org.mitre.oauth2.service.OAuth2TokenEntityService#getAccessTokenForIdToken(org.mitre.oauth2.model.OAuth2AccessTokenEntity)
-	 */
-	@Override
-	public OAuth2AccessTokenEntity getAccessTokenForIdToken(OAuth2AccessTokenEntity idToken) {
-		return tokenRepository.getAccessTokenForIdToken(idToken);
-	}
-
 
 	@Override
 	public OAuth2AccessTokenEntity getRegistrationAccessTokenForClient(ClientDetailsEntity client) {

@@ -1,6 +1,7 @@
 /*******************************************************************************
- * Copyright 2016 The MITRE Corporation
- *   and the MIT Internet Trust Consortium
+ * Copyright 2017 The MIT Internet Trust Consortium
+ *
+ * Portions copyright 2011-2013 The MITRE Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +24,9 @@ import static org.mitre.oauth2.model.ClientDetailsEntity.AuthMethod.SECRET_JWT;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.text.ParseException;
 import java.util.Date;
@@ -40,6 +44,7 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.mitre.jwt.signer.service.JWTSigningAndValidationService;
 import org.mitre.jwt.signer.service.impl.JWKSetCacheService;
 import org.mitre.jwt.signer.service.impl.SymmetricKeyJWTValidatorCacheService;
+import org.mitre.oauth2.model.PKCEAlgorithm;
 import org.mitre.oauth2.model.RegisteredClient;
 import org.mitre.openid.connect.client.model.IssuerServiceResponse;
 import org.mitre.openid.connect.client.service.AuthRequestOptionsService;
@@ -75,6 +80,7 @@ import com.nimbusds.jose.Algorithm;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.util.Base64;
+import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.JWTParser;
@@ -83,17 +89,18 @@ import com.nimbusds.jwt.SignedJWT;
 
 /**
  * OpenID Connect Authentication Filter class
- * 
+ *
  * @author nemonik, jricher
- * 
+ *
  */
 public class OIDCAuthenticationFilter extends AbstractAuthenticationProcessingFilter {
 
 	protected final static String REDIRECT_URI_SESION_VARIABLE = "redirect_uri";
+	protected final static String CODE_VERIFIER_SESSION_VARIABLE = "code_verifier";
 	protected final static String STATE_SESSION_VARIABLE = "state";
 	protected final static String NONCE_SESSION_VARIABLE = "nonce";
 	protected final static String ISSUER_SESSION_VARIABLE = "issuer";
-	protected static final String TARGET_SESSION_VARIABLE = "target";
+	protected final static String TARGET_SESSION_VARIABLE = "target";
 	protected final static int HTTP_SOCKET_TIMEOUT = 30000;
 
 	public final static String FILTER_PROCESSES_URL = "/openid_connect_login";
@@ -113,6 +120,8 @@ public class OIDCAuthenticationFilter extends AbstractAuthenticationProcessingFi
 	@Autowired(required=false)
 	private JWTSigningAndValidationService authenticationSignerService;
 
+	@Autowired(required=false)
+	private HttpClient httpClient;
 
 	/*
 	 * Modular services to build out client filter.
@@ -161,9 +170,9 @@ public class OIDCAuthenticationFilter extends AbstractAuthenticationProcessingFi
 
 	/*
 	 * This is the main entry point for the filter.
-	 * 
+	 *
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see org.springframework.security.web.authentication.
 	 * AbstractAuthenticationProcessingFilter
 	 * #attemptAuthentication(javax.servlet.http.HttpServletRequest,
@@ -196,7 +205,7 @@ public class OIDCAuthenticationFilter extends AbstractAuthenticationProcessingFi
 
 	/**
 	 * Initiate an Authorization request
-	 * 
+	 *
 	 * @param request
 	 *            The request from which to extract parameters and perform the
 	 *            authentication
@@ -263,6 +272,26 @@ public class OIDCAuthenticationFilter extends AbstractAuthenticationProcessingFi
 
 			Map<String, String> options = authOptions.getOptions(serverConfig, clientConfig, request);
 
+			// if we're using PKCE, handle the challenge here
+			if (clientConfig.getCodeChallengeMethod() != null) {
+				String codeVerifier = createCodeVerifier(session);
+				options.put("code_challenge_method", clientConfig.getCodeChallengeMethod().getName());
+				if (clientConfig.getCodeChallengeMethod().equals(PKCEAlgorithm.plain)) {
+					options.put("code_challenge", codeVerifier);
+				} else if (clientConfig.getCodeChallengeMethod().equals(PKCEAlgorithm.S256)) {
+					try {
+						MessageDigest digest = MessageDigest.getInstance("SHA-256");
+						String hash = Base64URL.encode(digest.digest(codeVerifier.getBytes(StandardCharsets.US_ASCII))).toString();
+						options.put("code_challenge", hash);
+					} catch (NoSuchAlgorithmException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+
+
+				}
+			}
+
 			String authRequest = authRequestBuilder.buildAuthRequestUrl(serverConfig, clientConfig, redirectUri, nonce, state, options, issResp.getLoginHint());
 
 			logger.debug("Auth Request:  " + authRequest);
@@ -303,6 +332,11 @@ public class OIDCAuthenticationFilter extends AbstractAuthenticationProcessingFi
 		form.add("code", authorizationCode);
 		form.setAll(authOptions.getTokenOptions(serverConfig, clientConfig, request));
 
+		String codeVerifier = getStoredCodeVerifier(session);
+		if (codeVerifier != null) {
+			form.add("code_verifier", codeVerifier);
+		}
+
 		String redirectUri = getStoredSessionString(session, REDIRECT_URI_SESION_VARIABLE);
 		if (redirectUri != null) {
 			form.add("redirect_uri", redirectUri);
@@ -310,14 +344,14 @@ public class OIDCAuthenticationFilter extends AbstractAuthenticationProcessingFi
 
 		// Handle Token Endpoint interaction
 
-		HttpClient httpClient = HttpClientBuilder.create()
-				.useSystemProperties()
-				.setDefaultRequestConfig(
-						RequestConfig.custom()
-						.setSocketTimeout(httpSocketTimeout)
-						.build()
-						)
-						.build();
+		if(httpClient == null) {
+			httpClient = HttpClientBuilder.create()
+					.useSystemProperties()
+					.setDefaultRequestConfig(RequestConfig.custom()
+							.setSocketTimeout(httpSocketTimeout)
+							.build())
+					.build();
+		}
 
 		HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory(httpClient);
 
@@ -350,9 +384,9 @@ public class OIDCAuthenticationFilter extends AbstractAuthenticationProcessingFi
 				JWSAlgorithm alg = clientConfig.getTokenEndpointAuthSigningAlg();
 
 				if (SECRET_JWT.equals(clientConfig.getTokenEndpointAuthMethod()) &&
-						(alg.equals(JWSAlgorithm.HS256)
-								|| alg.equals(JWSAlgorithm.HS384)
-								|| alg.equals(JWSAlgorithm.HS512))) {
+						(JWSAlgorithm.HS256.equals(alg)
+								|| JWSAlgorithm.HS384.equals(alg)
+								|| JWSAlgorithm.HS512.equals(alg))) {
 
 					// generate one based on client secret
 					signer = symmetricCacheService.getSymmetricValidtor(clientConfig.getClient());
@@ -601,7 +635,7 @@ public class OIDCAuthenticationFilter extends AbstractAuthenticationProcessingFi
 
 	/**
 	 * Handle Authorization Endpoint error
-	 * 
+	 *
 	 * @param request
 	 *            The request from which to extract parameters and handle the
 	 *            error
@@ -616,7 +650,7 @@ public class OIDCAuthenticationFilter extends AbstractAuthenticationProcessingFi
 		String errorDescription = request.getParameter("error_description");
 		String errorURI = request.getParameter("error_uri");
 
-		throw new AuthenticationServiceException("Error from Authorization Endpoint: " + error + " " + errorDescription + " " + errorURI);
+		throw new AuthorizationEndpointException(error, errorDescription, errorURI);
 	}
 
 	/**
@@ -676,6 +710,26 @@ public class OIDCAuthenticationFilter extends AbstractAuthenticationProcessingFi
 		return getStoredSessionString(session, STATE_SESSION_VARIABLE);
 	}
 
+	/**
+	 * Create a random code challenge and store it in the session
+	 * @param session
+	 * @return
+	 */
+	protected static String createCodeVerifier(HttpSession session) {
+		String challenge = new BigInteger(50, new SecureRandom()).toString(16);
+		session.setAttribute(CODE_VERIFIER_SESSION_VARIABLE, challenge);
+		return challenge;
+	}
+
+	/**
+	 * Retrieve the stored challenge from our session
+	 * @param session
+	 * @return
+	 */
+	protected static String getStoredCodeVerifier(HttpSession session) {
+		return getStoredSessionString(session, CODE_VERIFIER_SESSION_VARIABLE);
+	}
+
 
 	@Override
 	public void setAuthenticationSuccessHandler(AuthenticationSuccessHandler successHandler) {
@@ -708,7 +762,9 @@ public class OIDCAuthenticationFilter extends AbstractAuthenticationProcessingFi
 			if (!Strings.isNullOrEmpty(target)) {
 				session.removeAttribute(TARGET_SESSION_VARIABLE);
 
-				target = deepLinkFilter.filter(target);
+				if (deepLinkFilter != null) {
+					target = deepLinkFilter.filter(target);
+				}
 
 				response.sendRedirect(target);
 			} else {

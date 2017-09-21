@@ -1,3 +1,4 @@
+<%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
 <%@ taglib prefix="o" tagdir="/WEB-INF/tags"%>
 <%@ taglib prefix="security" uri="http://www.springframework.org/security/tags"%>
@@ -13,7 +14,13 @@
         <o:sidebar/>
         <div class="span10">
             <div class="hero-unit">
-				<o:statsContent/>
+				<h2><spring:message code="statistics.title"/></h2>
+				
+				<p>
+				    <spring:message code="statistics.number_users" arguments='${statsSummary["userCount"]}'/>
+				    <spring:message code="statistics.number_clients" arguments='${statsSummary["clientCount"]}'/>
+				    <spring:message code="statistics.number_approvals" arguments='${statsSummary["approvalCount"]}'/>
+				</p>
             </div>
         </div>
     </div>

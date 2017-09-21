@@ -1,6 +1,7 @@
 <!-- 
- Copyright 2016 The MITRE Corporation 
-   and the MIT Internet Trust Consortium
+ Copyright 2017 The MIT Internet Trust Consortium
+ 
+ Portions copyright 2011-2013 The MITRE Corporation
  
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -191,18 +192,22 @@
 				</div>
 			</div>
 
-			<div class="control-group" id="applicationType">
-				<label class="control-label"><span class="label label-default nyi"><i class="icon-road icon-white"></i> NYI </span> <span data-i18n="client.client-form.type">Application Type</span></label>
-				<div class="controls">
-					<label class="radio inline">
-						<input type="radio" name="applicationType" value="NATIVE" <%-(client.application_type == 'NATIVE' ? 'checked' : '')%>> <span data-i18n="client.client-form.type-native">Native</span>
-					</label>
-					<label class="radio inline">
-						<input type="radio" name="applicationType" value="WEB" <%-(client.application_type == 'WEB' ? 'checked' : '')%>> <span data-i18n="client.client-form.type-web">Web</span>
-					</label>
-				</div>
-			</div>
-			
+           <div class="control-group" id="softwareId">
+                <label class="control-label" data-i18n="client.client-form.software-id">Software ID</label>
+                <div class="controls">
+                    <input value="<%-client.software_id ? client.software_id : '' %>" maxlength="100" type="text" class="" placeholder="Type something" data-i18n="[placeholder]client.client-form.software-id-placeholder">
+                    <p class="help-block" data-i18n="client.client-form.software-id-help">Identifier for the software in this client</p>
+                </div>
+            </div>
+
+            <div class="control-group" id="softwareVersion">
+                <label class="control-label" data-i18n="client.client-form.software-version">Software Version</label>
+                <div class="controls">
+                    <input value="<%-client.software_version ? client.sofware_version : ''%>" maxlength="100" type="text" class="" placeholder="Type something" data-i18n="[placeholder]client.client-form.software-version-placeholder">
+                    <p class="help-block" data-i18n="client.client-form.software-version-help">Version of the software in this client</p>
+                </div>
+            </div>
+
             <div class="control-group" id="contacts">
                 <label class="control-label" data-i18n="client.client-form.contacts">Contacts</label>
                 <div class="controls">
@@ -210,6 +215,15 @@
 					<div></div>
                 </div>
             </div>
+            <div class="control-group" id="softwareStatement">
+                <label class="control-label" data-i18n="client.client-form.software-statement">Software Statement</label>
+                <div class="controls">
+                    <textarea class="input-xlarge" placeholder="ejy0..." maxlength="4096"
+                              rows="3" data-i18n="[placeholder]client.client-form.software-statement-placeholder"><%-client.software_statement%></textarea>
+                    <p class="help-block" data-i18n="client.client-form.software-statement-help">A software statement is issued by a trusted third party and locks certain elements of a client's registration</p>
+                </div>
+            </div>
+
 	</div>
 	
 	<div class="tab-pane" id="client-access-tab">
@@ -318,6 +332,7 @@
 			<div class="control-group" id="tokenEndpointAuthMethod">
 				<label class="control-label" data-i18n="client.client-form.authentication-method">Token Endpoint Authentication Method</label>
 				<div class="controls">
+					<% if (!heartMode) { %>
                     <div>
                         <input type="radio" id="tokenEndpointAuthMethodBasic" name="tokenEndpointAuthMethod" value="client_secret_basic" <%-(client.token_endpoint_auth_method == 'client_secret_basic' ? 'checked' : '')%>>
                         <label for="tokenEndpointAuthMethodBasic" class="radio" data-i18n="client.client-form.secret-http">Client Secret over HTTP Basic</label>
@@ -330,8 +345,9 @@
                         <input type="radio" id="tokenEndpointAuthMethodSymm" name="tokenEndpointAuthMethod" value="client_secret_jwt" <%-(client.token_endpoint_auth_method == 'client_secret_jwt' ? 'checked' : '')%>>
                         <label for="tokenEndpointAuthMethodSymm" class="radio" data-i18n="client.client-form.secret-symmetric-jwt">Client Secret via symmetrically-signed JWT assertion</label>
                     </div>
+					<% } %>
                     <div>
-                        <input type="radio" id="tokenEndpointAuthMethodAssym" name="tokenEndpointAuthMethod" value="private_key_jwt" <%-(client.token_endpoint_auth_method == 'private_key_jwt' ? 'checked' : '')%>>
+                        <input type="radio" id="tokenEndpointAuthMethodAssym" name="tokenEndpointAuthMethod" value="private_key_jwt" <%-((client.token_endpoint_auth_method == 'private_key_jwt')  || (heartMode && !client.tokenEndpointAuthMethod) ? 'checked' : '')%>>
                         <label for="tokenEndpointAuthMethodAssym" class="radio" data-i18n="client.client-form.secret-asymmetric-jwt">Asymmetrically-signed JWT assertion</label>
                     </div>
                     <div>
@@ -501,6 +517,17 @@
                     </select>
                 </div>
 			</div>
+
+            <div class="control-group" id="codeChallengeMethod">
+                <label class="control-label" data-i18n="client.client-form.code-challenge-method">Proof Key for Code Exchange (PKCE) Code Challenge Method</label>
+                <div class="controls">
+					<select>
+						<option value="default" <%-client.code_challenge_method == null ? 'selected ' : ''%> data-i18n="client.client-form.code-challenge-none">No code challenge</option>
+						<option value="plain" <%-client.code_challenge_method == "plain" ? 'selected' : ''%> data-i18n="client.client-form.code-challenge-plain">Plain code challenge</option>
+						<option value="S256" <%-client.code_challenge_method == "S256" ? 'selected' : ''%> data-i18n="client.client-form.code-challenge-s256">SHA-256 hash algorithm</option>
+					</select>
+                </div>
+            </div>
 	</div>
 
 	<div class="tab-pane" id="client-other-tab">
@@ -556,7 +583,17 @@
                 </div>
             </div>
 
-			
+			<div class="control-group" id="applicationType">
+				<label class="control-label"><span class="label label-default nyi"><i class="icon-road icon-white"></i> NYI </span> <span data-i18n="client.client-form.type">Application Type</span></label>
+				<div class="controls">
+					<label class="radio inline">
+						<input type="radio" name="applicationType" value="NATIVE" <%-(client.application_type == 'NATIVE' ? 'checked' : '')%>> <span data-i18n="client.client-form.type-native">Native</span>
+					</label>
+					<label class="radio inline">
+						<input type="radio" name="applicationType" value="WEB" <%-(client.application_type == 'WEB' ? 'checked' : '')%>> <span data-i18n="client.client-form.type-web">Web</span>
+					</label>
+				</div>
+			</div>			
 
 	</div>
 

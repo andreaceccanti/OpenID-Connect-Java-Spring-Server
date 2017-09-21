@@ -1,6 +1,7 @@
 /*******************************************************************************
- * Copyright 2016 The MITRE Corporation
- *   and the MIT Internet Trust Consortium
+ * Copyright 2017 The MIT Internet Trust Consortium
+ *
+ * Portions copyright 2011-2013 The MITRE Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +16,7 @@
  * limitations under the License.
  *******************************************************************************/
 /**
- * 
+ *
  */
 package org.mitre.util;
 
@@ -28,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.mitre.oauth2.model.PKCEAlgorithm;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +37,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
@@ -46,7 +49,7 @@ import com.nimbusds.jose.JWSAlgorithm;
 
 /**
  * A collection of null-safe converters from common classes and JSON elements, using GSON.
- * 
+ *
  * @author jricher
  *
  */
@@ -61,12 +64,28 @@ public class JsonUtils {
 	private static Gson gson = new Gson();
 
 	/**
-	 * Translate a set of strings to a JSON array
+	 * Translate a set of strings to a JSON array, empty array returned as null
 	 * @param value
 	 * @return
 	 */
 	public static JsonElement getAsArray(Set<String> value) {
-		return gson.toJsonTree(value, new TypeToken<Set<String>>(){}.getType());
+		return getAsArray(value, false);
+	}
+
+
+	/**
+	 * Translate a set of strings to a JSON array, optionally preserving the empty array. Otherwise (default) empty array is returned as null.
+	 * @param value
+	 * @param preserveEmpty
+	 * @return
+	 */
+	public static JsonElement getAsArray(Set<String> value, boolean preserveEmpty) {
+		if (!preserveEmpty && value != null && value.isEmpty()) {
+			// if we're not preserving empty arrays and the value is empty, return null
+			return JsonNull.INSTANCE;
+		} else {
+			return gson.toJsonTree(value, new TypeToken<Set<String>>(){}.getType());
+		}
 	}
 
 	/**
@@ -116,6 +135,21 @@ public class JsonUtils {
 		String s = getAsString(o, member);
 		if (s != null) {
 			return JWSAlgorithm.parse(s);
+		} else {
+			return null;
+		}
+	}
+
+	/**
+	 * Gets the value of the given member as a PKCE Algorithm, null if it doesn't exist
+	 * @param o
+	 * @param member
+	 * @return
+	 */
+	public static PKCEAlgorithm getAsPkceAlgorithm(JsonObject o, String member) {
+		String s = getAsString(o, member);
+		if (s != null) {
+			return PKCEAlgorithm.parse(s);
 		} else {
 			return null;
 		}
@@ -254,19 +288,19 @@ public class JsonUtils {
 			String name = reader.nextName();
 			Object value = null;
 			switch(reader.peek()) {
-			case STRING:
-				value = reader.nextString();
-				break;
-			case BOOLEAN:
-				value = reader.nextBoolean();
-				break;
-			case NUMBER:
-				value = reader.nextLong();
-				break;
-			default:
-				logger.debug("Found unexpected entry");
-				reader.skipValue();
-				continue;
+				case STRING:
+					value = reader.nextString();
+					break;
+				case BOOLEAN:
+					value = reader.nextBoolean();
+					break;
+				case NUMBER:
+					value = reader.nextLong();
+					break;
+				default:
+					logger.debug("Found unexpected entry");
+					reader.skipValue();
+					continue;
 			}
 			map.put(name, value);
 		}
@@ -278,21 +312,21 @@ public class JsonUtils {
 		Set arraySet = null;
 		reader.beginArray();
 		switch (reader.peek()) {
-		case STRING:
-			arraySet = new HashSet<>();
-			while (reader.hasNext()) {
-				arraySet.add(reader.nextString());
-			}
-			break;
-		case NUMBER:
-			arraySet = new HashSet<>();
-			while (reader.hasNext()) {
-				arraySet.add(reader.nextLong());
-			}
-			break;
-		default:
-			arraySet = new HashSet();
-			break;
+			case STRING:
+				arraySet = new HashSet<>();
+				while (reader.hasNext()) {
+					arraySet.add(reader.nextString());
+				}
+				break;
+			case NUMBER:
+				arraySet = new HashSet<>();
+				while (reader.hasNext()) {
+					arraySet.add(reader.nextLong());
+				}
+				break;
+			default:
+				arraySet = new HashSet();
+				break;
 		}
 		reader.endArray();
 		return arraySet;

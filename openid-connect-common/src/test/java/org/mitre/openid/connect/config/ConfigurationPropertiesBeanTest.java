@@ -1,6 +1,7 @@
 /*******************************************************************************
- * Copyright 2016 The MITRE Corporation
- *   and the MIT Internet Trust Consortium
+ * Copyright 2017 The MIT Internet Trust Consortium
+ *
+ * Portions copyright 2011-2013 The MITRE Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +16,7 @@
  * limitations under the License.
  *******************************************************************************/
 /**
- * 
+ *
  */
 package org.mitre.openid.connect.config;
 
@@ -133,6 +134,15 @@ public class ConfigurationPropertiesBeanTest {
 			fail("Unexpected BeanCreationException for https issuer with forceHttps=true, message:" + e.getMessage());
 		}
 
+	}
+
+	@Test
+	public void testShortTopbarTitle() {
+		ConfigurationPropertiesBean bean = new ConfigurationPropertiesBean();
+		bean.setTopbarTitle("LONG");
+		assertEquals("LONG", bean.getShortTopbarTitle());
+		bean.setShortTopbarTitle("SHORT");
+		assertEquals("SHORT", bean.getShortTopbarTitle());
 	}
 
 }

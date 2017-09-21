@@ -1,6 +1,5 @@
 /*******************************************************************************
- * Copyright 2016 The MITRE Corporation
- *   and the MIT Internet Trust Consortium
+ * Copyright 2017 The MIT Internet Trust Consortium
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +16,12 @@
 
 package org.mitre.oauth2.service.impl;
 
+import static org.mockito.Matchers.anyString;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mitre.openid.connect.config.ConfigurationPropertiesBean;
 import org.mitre.openid.connect.service.BlacklistedSiteService;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -31,8 +33,6 @@ import com.google.common.collect.ImmutableSet;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-
-import static org.mockito.Matchers.anyString;
 
 import static org.mockito.Mockito.when;
 
@@ -50,6 +50,9 @@ public class TestBlacklistAwareRedirectResolver {
 
 	@Mock
 	private ClientDetails client;
+
+	@Mock
+	private ConfigurationPropertiesBean config;
 
 	@InjectMocks
 	private BlacklistAwareRedirectResolver resolver;
@@ -72,16 +75,21 @@ public class TestBlacklistAwareRedirectResolver {
 		when(client.getAuthorizedGrantTypes()).thenReturn(ImmutableSet.of("authorization_code"));
 		when(client.getRegisteredRedirectUri()).thenReturn(ImmutableSet.of(goodUri, blacklistedUri));
 
+		when(config.isHeartMode()).thenReturn(false);
 	}
 
 	@Test
 	public void testResolveRedirect_safe() {
 
-		// default uses prefix matching, both of these should work
+		// default uses prefix matching, the first one should work fine
 
 		String res1 = resolver.resolveRedirect(goodUri, client);
 
 		assertThat(res1, is(equalTo(goodUri)));
+		
+		// set the resolver to non-strict and test the path-based redirect resolution
+		
+		resolver.setStrictMatch(false);
 
 		String res2 = resolver.resolveRedirect(pathUri, client);
 
@@ -99,8 +107,7 @@ public class TestBlacklistAwareRedirectResolver {
 	}
 
 	@Test
-	public void testRedirectMatches_strict() {
-		resolver.setStrictMatch(true);
+	public void testRedirectMatches_default() {
 
 		// this is not an exact match
 		boolean res1 = resolver.redirectMatches(pathUri, goodUri);
@@ -115,8 +122,11 @@ public class TestBlacklistAwareRedirectResolver {
 	}
 
 	@Test
-	public void testRedirectMatches_default() {
+	public void testRedirectMatches_nonstrict() {
 
+		// set the resolver to non-strict match mode
+		resolver.setStrictMatch(false);
+		
 		// this is not an exact match (but that's OK)
 		boolean res1 = resolver.redirectMatches(pathUri, goodUri);
 
@@ -127,6 +137,21 @@ public class TestBlacklistAwareRedirectResolver {
 
 		assertThat(res2, is(true));
 
+	}
+
+	@Test
+	public void testHeartMode() {
+		when(config.isHeartMode()).thenReturn(true);
+
+		// this is not an exact match
+		boolean res1 = resolver.redirectMatches(pathUri, goodUri);
+
+		assertThat(res1, is(false));
+
+		// this is an exact match
+		boolean res2 = resolver.redirectMatches(goodUri, goodUri);
+
+		assertThat(res2, is(true));
 	}
 
 }

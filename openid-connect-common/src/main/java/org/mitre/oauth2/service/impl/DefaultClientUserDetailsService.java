@@ -1,6 +1,7 @@
 /*******************************************************************************
- * Copyright 2016 The MITRE Corporation
- *   and the MIT Internet Trust Consortium
+ * Copyright 2017 The MIT Internet Trust Consortium
+ *
+ * Portions copyright 2011-2013 The MITRE Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +25,7 @@ import java.util.HashSet;
 import org.mitre.oauth2.model.ClientDetailsEntity;
 import org.mitre.oauth2.model.ClientDetailsEntity.AuthMethod;
 import org.mitre.oauth2.service.ClientDetailsEntityService;
+import org.mitre.openid.connect.config.ConfigurationPropertiesBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -38,7 +40,7 @@ import com.google.common.base.Strings;
 
 /**
  * Shim layer to convert a ClientDetails service into a UserDetails service
- * 
+ *
  * @author AANGANES
  *
  */
@@ -50,6 +52,9 @@ public class DefaultClientUserDetailsService implements UserDetailsService {
 	@Autowired
 	private ClientDetailsEntityService clientDetailsService;
 
+	@Autowired
+	private ConfigurationPropertiesBean config;
+
 	@Override
 	public UserDetails loadUserByUsername(String clientId) throws  UsernameNotFoundException {
 
@@ -60,9 +65,10 @@ public class DefaultClientUserDetailsService implements UserDetailsService {
 
 				String password = Strings.nullToEmpty(client.getClientSecret());
 
-				if (client.getTokenEndpointAuthMethod() != null &&
+				if (config.isHeartMode() || // if we're running HEART mode turn off all client secrets
+						(client.getTokenEndpointAuthMethod() != null &&
 						(client.getTokenEndpointAuthMethod().equals(AuthMethod.PRIVATE_KEY) ||
-								client.getTokenEndpointAuthMethod().equals(AuthMethod.SECRET_JWT))) {
+								client.getTokenEndpointAuthMethod().equals(AuthMethod.SECRET_JWT)))) {
 
 					// Issue a random password each time to prevent password auth from being used (or skipped)
 					// for private key or shared key clients, see #715

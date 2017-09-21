@@ -1,3 +1,4 @@
+<%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
 <%@ taglib prefix="o" tagdir="/WEB-INF/tags"%>
 <%@ taglib prefix="security" uri="http://www.springframework.org/security/tags"%>
@@ -14,7 +15,10 @@
 			<!-- Main hero unit for a primary marketing message or call to action -->
 			<div class="hero-unit">
 
-				<o:aboutContent />
+				<h2><spring:message code="about.title"/></h2>
+				<p>
+				<spring:message code="about.body"/>
+				</p>
 
 			</div>
 

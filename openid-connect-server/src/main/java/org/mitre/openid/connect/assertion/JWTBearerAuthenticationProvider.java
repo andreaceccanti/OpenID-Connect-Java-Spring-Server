@@ -1,6 +1,7 @@
 /*******************************************************************************
- * Copyright 2016 The MITRE Corporation
- *   and the MIT Internet Trust Consortium
+ * Copyright 2017 The MIT Internet Trust Consortium
+ *
+ * Portions copyright 2011-2013 The MITRE Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +16,7 @@
  * limitations under the License.
  *******************************************************************************/
 /**
- * 
+ *
  */
 package org.mitre.openid.connect.assertion;
 
@@ -85,7 +86,7 @@ public class JWTBearerAuthenticationProvider implements AuthenticationProvider {
 
 
 		try {
-			ClientDetailsEntity client = clientService.loadClientByClientId(jwtAuth.getClientId());
+			ClientDetailsEntity client = clientService.loadClientByClientId(jwtAuth.getName());
 
 			JWT jwt = jwtAuth.getJwt();
 			JWTClaimsSet jwtClaims = jwt.getJWTClaimsSet();
@@ -118,11 +119,16 @@ public class JWTBearerAuthenticationProvider implements AuthenticationProvider {
 								|| alg.equals(JWSAlgorithm.ES512)
 								|| alg.equals(JWSAlgorithm.PS256)
 								|| alg.equals(JWSAlgorithm.PS384)
-								|| alg.equals(JWSAlgorithm.PS512))) 
-					|| (client.getTokenEndpointAuthMethod().equals(AuthMethod.SECRET_JWT) &&
-						(alg.equals(JWSAlgorithm.HS256)
-								|| alg.equals(JWSAlgorithm.HS384)
-								|| alg.equals(JWSAlgorithm.HS512)))) {
+								|| alg.equals(JWSAlgorithm.PS512)))
+						|| (client.getTokenEndpointAuthMethod().equals(AuthMethod.SECRET_JWT) &&
+								(alg.equals(JWSAlgorithm.HS256)
+										|| alg.equals(JWSAlgorithm.HS384)
+										|| alg.equals(JWSAlgorithm.HS512)))) {
+
+					// double-check the method is asymmetrical if we're in HEART mode
+					if (config.isHeartMode() && !client.getTokenEndpointAuthMethod().equals(AuthMethod.PRIVATE_KEY)) {
+						throw new AuthenticationServiceException("[HEART mode] Invalid authentication method");
+					}
 
 					JWTSigningAndValidationService validator = validators.getValidator(client, alg);
 
@@ -186,10 +192,10 @@ public class JWTBearerAuthenticationProvider implements AuthenticationProvider {
 			Set<GrantedAuthority> authorities = new HashSet<>(client.getAuthorities());
 			authorities.add(ROLE_CLIENT);
 
-			return new JWTBearerAssertionAuthenticationToken(client.getClientId(), jwt, authorities);
+			return new JWTBearerAssertionAuthenticationToken(jwt, authorities);
 
 		} catch (InvalidClientException e) {
-			throw new UsernameNotFoundException("Could not find client: " + jwtAuth.getClientId());
+			throw new UsernameNotFoundException("Could not find client: " + jwtAuth.getName());
 		} catch (ParseException e) {
 
 			logger.error("Failure during authentication, error was: ", e);
